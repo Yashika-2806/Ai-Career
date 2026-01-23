@@ -1,0 +1,193 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import dotenv from 'dotenv';
+
+// Ensure env is loaded
+dotenv.config();
+
+interface AIResponse {
+  success: boolean;
+  response?: string;
+  error?: string;
+  metadata?: {
+    tokensUsed?: number;
+    model?: string;
+    timestamp?: Date;
+  };
+}
+
+interface ConversationHistory {
+  role: 'user' | 'model';
+  parts: string[];
+}
+
+export class AIService {
+  private genAI: GoogleGenerativeAI;
+  private model: any;
+  private conversationHistory: Map<string, ConversationHistory[]> = new Map();
+
+  constructor(apiKey: string) {
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not set');
+    }
+    this.genAI = new GoogleGenerativeAI(apiKey);
+    // Use gemini-2.5-flash - modern, stable, fast (v1beta API)
+    this.model = this.genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        maxOutputTokens: 2048,
+        temperature: 0.7,
+      }
+    });
+  }
+
+  /**
+   * Send a message to Gemini AI with optional conversation history
+   */
+  async sendMessage(
+    prompt: string,
+    conversationId?: string,
+    language: 'en' | 'hi' = 'en'
+  ): Promise<AIResponse> {
+    try {
+      // Add language instruction
+      const enhancedPrompt = language === 'hi'
+        ? `${prompt}\n\n(Please respond in Hindi if possible, or English with Hindi explanations)`
+        : prompt;
+
+      // If no conversation ID, just generate content directly
+      if (!conversationId) {
+        const result = await this.model.generateContent(enhancedPrompt);
+        const responseText = result.response.text();
+        
+        return {
+          success: true,
+          response: responseText,
+          metadata: {
+            model: 'gemini-2.5-flash',
+            timestamp: new Date(),
+          }
+        };
+      }
+
+      // Load conversation history if provided
+      let history: ConversationHistory[] = this.conversationHistory.get(conversationId) || [];
+
+      // Start or continue chat with proper history format
+      const chat = this.model.startChat({
+        history: history.map(h => ({
+          role: h.role,
+          parts: [{ text: h.parts[0] }]
+        })),
+        generationConfig: {
+          maxOutputTokens: 2048,
+          temperature: 0.7,
+        },
+      });
+
+      const result = await chat.sendMessage(enhancedPrompt);
+      const responseText = result.response.text();
+
+      // Save conversation history
+      const updatedHistory: ConversationHistory[] = [
+        ...history,
+        { role: 'user' as const, parts: [enhancedPrompt] },
+        { role: 'model' as const, parts: [responseText] }
+      ];
+      this.conversationHistory.set(conversationId, updatedHistory);
+
+      return {
+        success: true,
+        response: responseText,
+        metadata: {
+          model: 'gemini-2.5-flash',
+          timestamp: new Date(),
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ AI Service Error:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        details: error.details,
+      });
+      
+      // Return structured error with code
+      return {
+        success: false,
+        error: error.message || 'Failed to generate response',
+        metadata: {
+          model: 'gemini-pro',
+          timestamp: new Date(),
+        }
+      };
+    }
+  }
+
+  /**
+   * Stream a response for real-time feedback
+   */
+  async streamMessage(
+    prompt: string,
+    onChunk: (chunk: string) => void
+  ): Promise<AIResponse> {
+    try {
+      const response = await this.model.generateContentStream(prompt);
+      let fullResponse = '';
+
+      for await (const chunk of response.stream) {
+        const text = chunk.text();
+        fullResponse += text;
+        onChunk(text);
+      }
+
+      return {
+        success: true,
+        response: fullResponse,
+        metadata: {
+          model: 'gemini-pro',
+          timestamp: new Date(),
+        }
+      };
+    } catch (error: any) {
+      console.error('Stream Error:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to stream response',
+      };
+    }
+  }
+
+  /**
+   * Batch process multiple prompts
+   */
+  async batchProcess(prompts: string[]): Promise<AIResponse[]> {
+    const responses = await Promise.all(
+      prompts.map(prompt => this.sendMessage(prompt))
+    );
+    return responses;
+  }
+
+  /**
+   * Get conversation history
+   */
+  getHistory(conversationId: string): ConversationHistory[] {
+    return this.conversationHistory.get(conversationId) || [];
+  }
+
+  /**
+   * Clear conversation history
+   */
+  clearHistory(conversationId: string): void {
+    this.conversationHistory.delete(conversationId);
+  }
+
+  /**
+   * Clear all histories
+   */
+  clearAllHistories(): void {
+    this.conversationHistory.clear();
+  }
+}
+
+export default AIService;
+console.log("🔥 AI SERVICE LOADED - MODEL: gemini-pro");

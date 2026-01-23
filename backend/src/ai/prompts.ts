@@ -1,0 +1,439 @@
+// DSA AI prompt templates
+export const DSA_PROMPTS = {
+  analyzeApproach: (question: string, userApproach: string, constraints: string) => `
+You are an expert competitive programmer and DSA mentor.
+
+Question: ${question}
+Constraints: ${constraints}
+User's Approach: ${userApproach}
+
+Provide structured feedback:
+1. **Approach Validity**: Is the approach correct?
+2. **Time Complexity**: Analyze the time complexity
+3. **Space Complexity**: Analyze the space complexity
+4. **Alternative Approaches**: Suggest 2-3 alternative approaches with their complexities
+5. **Edge Cases**: List potential edge cases and how to handle them
+6. **If constraints halved**: How would you optimize?
+7. **If constraints doubled**: How would you still solve it efficiently?
+
+Format your response in markdown with clear sections.
+  `,
+
+  suggestOptimizations: (question: string, currentComplexity: string) => `
+You are a DSA optimization expert.
+
+Question: ${question}
+Current Solution Complexity: ${currentComplexity}
+
+Suggest 3 optimization strategies with:
+- Exact time/space complexity improvements
+- Code examples (pseudocode is fine)
+- When to use each approach
+
+Explain trade-offs between memory and speed.
+  `,
+
+  generateRelatedProblems: (topic: string, difficulty: string) => `
+You are a DSA curriculum designer.
+
+Topic: ${topic}
+Current Difficulty: ${difficulty}
+
+Generate 5 related problems that progressively increase in difficulty:
+1. Problem statement (1-2 lines)
+2. Key insight needed
+3. Estimated difficulty
+
+This helps build intuition for the concept.
+  `
+};
+
+export const RESUME_PROMPTS = {
+  generateFromProfiles: (profiles: Record<string, any>) => `
+You are a professional resume writer with startup hiring experience.
+
+Generate a detailed, ATS-optimized resume from these profiles:
+${JSON.stringify(profiles, null, 2)}
+
+IMPORTANT: Generate a COMPLETE, DETAILED resume with ALL sections filled out.
+
+Structure (in plain text format, NO markdown):
+
+[NAME] - Use from personal.name or generate professional name
+[EMAIL] | [PHONE] | [GITHUB PROFILE URL] | [LINKEDIN URL]
+
+===== PROFESSIONAL SUMMARY =====
+[Write 3-4 compelling sentences about expertise, skills, and career goals based on profile data]
+
+===== TECHNICAL SKILLS =====
+Programming Languages: [List from GitHub repos and coding profiles]
+Frameworks & Tools: [Infer from GitHub repos]
+Databases: [Common ones]
+Other: [Cloud, DevOps, etc.]
+
+===== EDUCATION =====
+[College Name] - [Branch]
+[Graduation Year]
+Relevant Coursework: [Related to branch]
+
+===== COMPETITIVE PROGRAMMING =====
+[If LeetCode data exists]: LeetCode: [X problems solved], Rating: [Y]
+[If CodeForces data exists]: CodeForces: [Rank], Rating: [X], Contests: [Y]
+[If GitHub data exists]: GitHub: [X public repos], [Y followers]
+
+===== PROJECTS =====
+[List 3-5 projects inferred from GitHub repos with descriptions]
+Project 1: [Name] - [Tech Stack]
+- [Achievement/Feature 1]
+- [Achievement/Feature 2]
+- GitHub: [URL if available]
+
+===== EXPERIENCE =====
+[If no experience data, create 1-2 relevant internship/project experiences based on skills]
+Position | Company | Duration
+- [Achievement 1 with metrics]
+- [Achievement 2 with impact]
+
+===== ACHIEVEMENTS =====
+- [List coding achievements, contest ranks, certifications]
+- [GitHub stars, popular repos]
+- [Any other notable achievements]
+
+Generate a COMPLETE resume. DO NOT leave sections empty. Use the profile data to create a professional, detailed resume.
+  `,
+
+  calculateATSScore: (resume: string) => `
+You are an ATS (Applicant Tracking System) expert evaluator.
+
+Resume:
+${resume}
+
+Evaluate this resume comprehensively on:
+
+1. KEYWORD OPTIMIZATION (30 points)
+   - Relevant tech keywords (programming languages, frameworks, tools)
+   - Industry buzzwords (SDE, AIML, Data Science, ML, Cloud)
+   - Action verbs (developed, implemented, optimized, led)
+
+2. FORMATTING & STRUCTURE (25 points)
+   - Clear section headers
+   - Consistent formatting
+   - No special characters that ATS can't parse
+   - Proper spacing and organization
+
+3. CONTENT QUALITY (25 points)
+   - Quantified achievements (numbers, percentages, metrics)
+   - Strong action verbs
+   - Relevant experience and projects
+   - Skills match job requirements
+
+4. COMPLETENESS (20 points)
+   - All key sections present (Summary, Skills, Experience, Education, Projects)
+   - Contact information complete
+   - No empty sections
+   - Appropriate length (1-2 pages)
+
+Provide ONLY:
+Score: [X]/100
+
+Format your response EXACTLY as: "Score: XX/100" where XX is a number between 0-100.
+  `,
+
+  optimizeForRole: (resume: string, targetRole: string) => `
+You are a career strategist for tech professionals.
+
+Current Resume:
+${resume}
+
+Target Role: ${targetRole}
+
+Provide:
+1. Resume sections to reorder
+2. Keywords to add (use 'bold' for emphasis)
+3. Achievements to reframe
+4. Missing experience to highlight
+5. Certification/skill recommendations
+
+Make it SPECIFIC for this role.
+  `
+};
+
+export const RESEARCH_PROMPTS = {
+  summarizePaper: (title: string, abstract: string, content: string) => `
+You are a research paper analyst and summarizer.
+
+Paper Title: ${title}
+Abstract: ${abstract}
+
+Full Content:
+${content}
+
+Provide:
+1. **One-line summary**: What is the core contribution?
+2. **Problem Solved**: What gap does it address?
+3. **Key Methodology**: How do they solve it?
+4. **Results**: What are the main findings?
+5. **Limitations**: What are the constraints?
+6. **Future Work**: What remains unexplored?
+
+Keep each section concise but informative.
+  `,
+
+  findRelatedWorks: (title: string, problemStatement: string) => `
+You are a research literature expert.
+
+Research Paper: ${title}
+Problem: ${problemStatement}
+
+Suggest 10 related papers/works that:
+1. Directly cite similar problems
+2. Use similar methodologies
+3. Build upon related foundations
+4. Are from top-tier venues
+
+For each, provide:
+- Paper title
+- Why it's relevant
+- Key difference from current work
+
+Format as a numbered list with brief explanations.
+  `,
+
+  generateCitations: (paperTitle: string, authors: string[], year: number) => `
+You are an academic citation formatter.
+
+Generate citations for a paper:
+- Title: ${paperTitle}
+- Authors: ${authors.join(', ')}
+- Year: ${year}
+
+Provide in formats:
+1. **IEEE**: [1] ...
+2. **Springer**: Author. et al., "..." Journal, Year.
+3. **BibTeX**: @article{key, ...}
+4. **APA**: Author, A., et al. (Year). ...
+
+Make citations academically correct and complete.
+  `,
+
+  generateMethodology: (problemStatement: string, constraints: string) => `
+You are a research methodology designer.
+
+Problem: ${problemStatement}
+Constraints: ${constraints}
+
+Design a research methodology with:
+1. **Hypothesis**: What are you testing?
+2. **Methodology**: Step-by-step approach
+3. **Data Collection**: What data? How much?
+4. **Analysis**: How to evaluate results?
+5. **Timeline**: 3-month research plan
+6. **Resources**: Tools, datasets, hardware needed
+
+Be specific and realistic for college-level research.
+  `
+};
+
+export const INTERVIEW_PROMPTS = {
+  generateTechnicalQuestion: (backgroundContext: string, topicFocus: string) => `
+You are a tech interview conductor for top companies.
+
+Candidate Background:
+${backgroundContext}
+
+Interview Focus: ${topicFocus}
+
+Generate ONE challenging but fair technical question:
+1. Problem statement (clear and concise)
+2. Constraints
+3. Example input/output
+4. Difficulty level
+5. Key concepts tested
+
+Follow-up questions should naturally build from the initial problem.
+  `,
+
+  evaluateAnswer: (question: string, candidateAnswer: string, optimalApproach: string) => `
+You are a senior engineer conducting interviews.
+
+Question: ${question}
+Candidate's Answer: ${candidateAnswer}
+Optimal Approach: ${optimalApproach}
+
+Provide feedback on:
+1. **Correctness**: Is the solution correct?
+2. **Communication**: Did they explain clearly?
+3. **Complexity Analysis**: Did they discuss O(n) complexity?
+4. **Edge Cases**: Did they consider edge cases?
+5. **Coding Quality**: Is code clean and readable?
+6. **Confidence**: Were they confident?
+7. **Problem-solving Approach**: Was there a systematic approach?
+
+Rate on scale 1-5 (5 = excellent, 1 = needs improvement).
+Provide actionable feedback for improvement.
+  `,
+
+  generateHRQuestion: (jobRole: string, userBackground: string) => `
+You are an HR interview specialist.
+
+Job Role: ${jobRole}
+Candidate Background:
+${userBackground}
+
+Generate an HR question that:
+1. Is role-relevant
+2. Probes soft skills
+3. Assesses cultural fit
+4. Is open-ended
+
+Provide:
+- Question
+- What you're evaluating
+- Good vs poor answer examples
+- Follow-up questions
+  `
+};
+
+export const ROADMAP_PROMPTS = {
+  generateRoadmap: (role: string, duration: number, currentLevel: string, goals: string, additionalInfo?: any) => `
+You are an expert career development strategist and technical mentor for ${role} professionals.
+
+📋 USER PROFILE:
+- Target Role: ${role}
+- Duration: ${duration} months (${Math.ceil(duration * 4)} weeks total)
+- Current Level: ${currentLevel}
+- Career Goals: ${goals}
+
+${additionalInfo ? `
+📊 DETAILED ASSESSMENT:
+- DSA Knowledge: ${additionalInfo.topicKnowledge?.dsa || 'Beginner'}
+- System Design: ${additionalInfo.topicKnowledge?.systemDesign || 'Beginner'}
+- Project Experience: ${additionalInfo.topicKnowledge?.projects || 'Limited'}
+- Interview Prep: ${additionalInfo.topicKnowledge?.interviews || 'Not started'}
+- Available Time: ${additionalInfo.availableHoursPerDay || 2} hours/day
+- Learning Style: ${additionalInfo.preferredLearningStyle || 'balanced'}
+${additionalInfo.hasDeadline ? `- Target Deadline: ${additionalInfo.deadlineDate}` : ''}
+` : ''}
+
+🎯 TASK: Create a comprehensive, week-by-week roadmap with ${Math.ceil(duration * 4)} detailed milestones.
+
+CRITICAL REQUIREMENTS FOR EACH WEEK:
+1. **Specific Learning Topics**: Name exact concepts, technologies, or skills
+2. **Actionable Tasks**: List 3-5 concrete activities (e.g., "Complete 10 array problems on LeetCode", "Build a REST API with Node.js")
+3. **Time Breakdown**: How to spend ${additionalInfo?.availableHoursPerDay || 2} hours/day
+4. **Resources**: Include 2-4 high-quality learning resources (courses, docs, tutorials, YouTube channels)
+5. **Milestone Goals**: What should be achieved by end of week
+6. **Difficulty Progression**: Start easier, gradually increase complexity
+
+📚 CONTENT STRUCTURE BY PHASE:
+Weeks 1-${Math.ceil(duration * 4 * 0.25)}: Foundation Building
+- Core concepts and fundamentals
+- Basic problem-solving skills
+- Essential tools and setup
+
+Weeks ${Math.ceil(duration * 4 * 0.25) + 1}-${Math.ceil(duration * 4 * 0.5)}: Intermediate Development
+- Advanced topics and patterns
+- Building small projects
+- Competitive programming practice
+
+Weeks ${Math.ceil(duration * 4 * 0.5) + 1}-${Math.ceil(duration * 4 * 0.75)}: Advanced & Specialization
+- System design (if applicable)
+- Large projects
+- Domain-specific skills for ${role}
+
+Weeks ${Math.ceil(duration * 4 * 0.75) + 1}-${Math.ceil(duration * 4)}: Interview Prep & Polish
+- Mock interviews
+- Resume building
+- Portfolio optimization
+- Company-specific preparation
+
+🔥 LEARNING APPROACH: ${additionalInfo?.preferredLearningStyle === 'project' ? 'PROJECT-BASED: Focus on building real projects each week' : additionalInfo?.preferredLearningStyle === 'theory' ? 'THEORY-FIRST: Deep understanding of concepts before practice' : 'BALANCED: Mix of theory (40%), practice (40%), and projects (20%)'}
+
+⚠️ OUTPUT FORMAT: Return ONLY a valid JSON array with NO markdown, NO code blocks, NO extra text.
+
+EXACT JSON STRUCTURE (copy this format):
+[
+  {
+    "week": 1,
+    "title": "Foundation: Arrays & Strings Mastery",
+    "description": "Master array and string manipulation. Complete 15 easy problems on LeetCode. Learn two-pointer technique and sliding window. Build a string processing CLI tool. Focus: Time complexity analysis and pattern recognition. Daily: 30min theory + 1hr coding practice + 30min project work.",
+    "resources": [
+      "https://leetcode.com/tag/array/",
+      "https://www.youtube.com/watch?v=example-arrays",
+      "https://takeuforward.org/strivers-a2z-dsa-course/",
+      "https://neetcode.io/roadmap"
+    ]
+  }
+]
+
+⚡ EXAMPLE QUALITY STANDARDS:
+- ✅ "Master binary search on 1D arrays. Solve 12 problems: 8 easy, 4 medium. Implement custom binary search template. Build a search visualizer app."
+- ❌ "Learn data structures" (too vague)
+- ✅ "Design and implement a URL shortener with Redis caching. Handle 1000 req/sec. Deploy on AWS."
+- ❌ "Build a project" (too generic)
+
+Generate ${Math.ceil(duration * 4)} weeks of detailed, actionable content NOW. Make it achievable with ${additionalInfo?.availableHoursPerDay || 2}hrs/day.
+  `,
+
+  adaptRoadmap: (currentRoadmap: string, progressData: string) => `
+You are an adaptive learning coach.
+
+Current Roadmap:
+${currentRoadmap}
+
+Progress So Far:
+${progressData}
+
+Adapt the roadmap by:
+1. Identifying areas of strength to accelerate
+2. Identifying gaps to address
+3. Adjusting remaining milestones accordingly
+4. Adding focused practice zones
+5. Updating resource recommendations
+
+Provide updated weekly plan with justifications for changes.
+  `
+};
+
+export const GLOBAL_MENTOR_PROMPTS = {
+  contextAwareResponse: (userContext: string, currentPage: string, userHistory: string, userQuestion: string) => `
+You are a global AI mentor for college students pursuing careers in tech/research.
+
+User Context:
+${userContext}
+
+Current Page: ${currentPage}
+User's Learning History:
+${userHistory}
+
+User Question: ${userQuestion}
+
+Provide a response that:
+1. Is specific to their current activity
+2. References their past learning/achievements
+3. Connects to their career goals
+4. Offers actionable next steps
+5. Adapts language based on their level
+
+Be encouraging, specific, and concise (under 150 words for initial response).
+  `,
+
+  generateInsights: (userData: string, progressMetrics: string) => `
+You are a career analytics AI.
+
+User Profile:
+${userData}
+
+Progress Metrics:
+${progressMetrics}
+
+Generate personalized insights:
+1. **Strengths**: What are they excelling at?
+2. **Growth Areas**: Where should they focus next?
+3. **Career Readiness**: How close to placement-ready?
+4. **Recommended Focus**: Top 3 things to work on this week
+5. **Motivational Note**: One sentence of encouragement
+
+Keep insights actionable and specific.
+  `
+};
