@@ -97,31 +97,46 @@ export const pdfController = {
         console.log(`🔍 Generating ${questionCount} ${difficulty} quiz questions from document...`);
         console.log(`📄 Document text length: ${extractedText.length} characters`);
         
-        // Create questions with specific examples from document
-        const textPreview = extractedText.substring(0, 8000);
-        const sentences = textPreview.split(/[.!?]+/).filter(s => s.trim().length > 30).slice(0, 15);
-        const keyFacts = sentences.slice(0, 5).map(s => s.trim()).join('. ');
+        // Extract more comprehensive content from document
+        const textPreview = extractedText.substring(0, 12000);
+        
+        // Identify key topics and facts
+        const paragraphs = textPreview.split('\n\n').filter(p => p.trim().length > 50).slice(0, 10);
+        const keyTopics = paragraphs.map(p => p.substring(0, 200).trim()).join('\n\n');
 
-        const quizPrompt = `Create ${questionCount} quiz questions from this document.
+        const quizPrompt = `You are an expert educator creating quiz questions from educational material.
 
-DOCUMENT TEXT:
+DOCUMENT CONTENT:
 ${textPreview}
 
-KEY FACTS IDENTIFIED:
-${keyFacts}
+KEY TOPICS FROM DOCUMENT:
+${keyTopics}
 
-IMPORTANT INSTRUCTIONS:
-1. Create questions about SPECIFIC information from the document above
-2. Each question must reference actual content (names, numbers, facts, concepts mentioned in the text)
-3. Make 3 wrong options plausible but incorrect
-4. Difficulty: ${difficulty}
+CREATE ${questionCount} MULTIPLE CHOICE QUESTIONS with these requirements:
+1. Each question MUST be based on SPECIFIC information from the document above
+2. Questions should test understanding of key concepts, facts, or relationships mentioned
+3. Provide 4 options (A, B, C, D) - one correct and three plausible but incorrect
+4. Difficulty level: ${difficulty}
+5. Each question needs a clear explanation referencing the document
 
-RETURN FORMAT: Valid JSON array ONLY. No markdown, no code blocks, no extra text.
+CRITICAL: Return ONLY a valid JSON array. No markdown, no code blocks, no extra text.
 
-Example format:
-[{"question":"Based on the document, what is X?","options":["Correct fact from doc","Wrong but plausible","Another wrong","Also wrong"],"correctAnswer":0,"explanation":"This is stated in the document"}]
+Format (return exactly this structure):
+[
+  {
+    "question": "What specific concept does the document explain about [topic]?",
+    "options": [
+      "Correct answer based on document",
+      "Plausible wrong answer",
+      "Another plausible wrong answer",
+      "Third plausible wrong answer"
+    ],
+    "correctAnswer": 0,
+    "explanation": "According to the document, [specific reference to content]. This is mentioned in the section discussing [topic]."
+  }
+]
 
-Now generate ${questionCount} questions following this EXACT JSON format:`;
+Generate ${questionCount} questions in this exact JSON format:`;
 
         console.log('📝 Sending quiz prompt to AI...');
         
@@ -193,7 +208,9 @@ Now generate ${questionCount} questions following this EXACT JSON format:`;
             q.options.every((opt: any) => typeof opt === 'string' && opt.length > 0) &&
             typeof q.correctAnswer === 'number' &&
             q.correctAnswer >= 0 && 
-            q.correctAnswer <= 3
+            q.correctAnswer <= 3 &&
+            q.explanation &&
+            typeof q.explanation === 'string'
           );
           
           if (validQuestions.length === 0) {
@@ -207,36 +224,163 @@ Now generate ${questionCount} questions following this EXACT JSON format:`;
           console.error('❌ Quiz parsing failed:', parseError.message);
           console.log('Full AI response:', quizText.substring(0, 1000));
           
-          // Enhanced fallback: Extract meaningful content from document
+          // Enhanced fallback with better quality
           console.log('⚠️ Using enhanced fallback question generation...');
-          const sentences = extractedText.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(0, 10);
-          const fallbackQuestions = sentences.slice(0, Math.min(questionCount, 3)).map((sentence, idx) => ({
-            question: `According to the document, which statement is correct about the content discussed?`,
-            options: [
-              sentence.trim().substring(0, 100),
-              "This information is not mentioned in the document",
-              "The document discusses a different topic",
-              "The content is not related to this subject"
-            ],
-            correctAnswer: 0,
-            explanation: "This information is directly from the document content."
-          }));
           
-          result = {
-            questions: fallbackQuestions.length > 0 ? fallbackQuestions : [
-              {
-                question: "What information does this document primarily contain?",
-                options: [
-                  "Educational or informational content",
-                  "Random unrelated data",
-                  "Empty pages",
-                  "Encrypted content"
-                ],
-                correctAnswer: 0,
-                explanation: "The document contains specific information that can be studied."
-              }
-            ]
-          };
+          // Extract key sentences from document
+          const meaningfulSentences = extractedText
+            .split(/[.!?]+/)
+            .map(s => s.trim())
+            .filter(s => s.length > 30 && s.length < 200)
+            .slice(0, 20);
+          
+          const fallbackQuestions = [];
+          for (let i = 0; i < Math.min(questionCount, meaningfulSentences.length, 5); i++) {
+            const sentence = meaningfulSentences[i];
+            fallbackQuestions.push({
+              question: `According to the document, which statement accurately reflects the content discussed?`,
+              options: [
+                sentence.substring(0, 120) + (sentence.length > 120 ? '...' : ''),
+                "This information is not mentioned in the document",
+                "The document discusses a completely different topic",
+                "This content contradicts what is stated in the document"
+              ],
+              correctAnswer: 0,
+              explanation: `This statement is directly extracted from the document content and accurately represents information discussed in the material.`
+            });
+          }
+          
+          if (fallbackQuestions.length === 0) {
+            fallbackQuestions.push({
+              question: "What type of information does this document primarily contain?",
+              options: [
+                "Educational or technical content with specific information",
+                "Random unrelated data with no coherent structure",
+                "Empty pages with no content",
+                "Encrypted or unreadable content"
+              ],
+              correctAnswer: 0,
+              explanation: "The document contains structured educational or informational content that can be studied and understood."
+            });
+          }
+          
+          result = { questions: fallbackQuestions };
+        }
+      } else if (mode === 'theory') {
+        // Generate theory/written questions
+        console.log(`🔍 Generating ${questionCount} ${difficulty} theory questions from document...`);
+        
+        const textPreview = extractedText.substring(0, 12000);
+        const paragraphs = textPreview.split('\n\n').filter(p => p.trim().length > 50).slice(0, 10);
+        const keyTopics = paragraphs.map(p => p.substring(0, 200).trim()).join('\n\n');
+
+        const theoryPrompt = `You are an expert educator creating comprehensive written/theory questions from educational material.
+
+DOCUMENT CONTENT:
+${textPreview}
+
+KEY TOPICS:
+${keyTopics}
+
+CREATE ${questionCount} THEORY/WRITTEN QUESTIONS with these requirements:
+1. Each question should require a detailed written answer (not multiple choice)
+2. Questions should test deep understanding and ability to explain concepts
+3. Difficulty level: ${difficulty}
+4. Include a comprehensive model answer/solution for each question
+5. Questions should encourage critical thinking and synthesis
+
+Difficulty guidelines:
+- Easy: Simple explanation or definition questions
+- Moderate: Require analysis, comparison, or application
+- Hard: Demand critical evaluation, synthesis, or complex problem-solving
+
+CRITICAL: Return ONLY a valid JSON array. No markdown, no code blocks.
+
+Format:
+[
+  {
+    "question": "Explain in detail [concept from document]...",
+    "points": 5,
+    "expectedLength": "2-3 paragraphs",
+    "solution": "A comprehensive model answer that fully addresses the question...",
+    "keyPoints": [
+      "First key point to cover",
+      "Second key point to cover",
+      "Third key point to cover"
+    ]
+  }
+]
+
+Generate ${questionCount} theory questions:`;
+
+        const theoryResponse = await aiService.sendMessage(theoryPrompt);
+        const theoryText = theoryResponse.success ? theoryResponse.response : '';
+        
+        try {
+          let cleanedText = theoryText
+            .replace(/```json\s*/gi, '')
+            .replace(/```javascript\s*/gi, '')
+            .replace(/```\s*/g, '')
+            .trim();
+          
+          let jsonString = '';
+          let match = cleanedText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (match) {
+            jsonString = match[0];
+          } else {
+            const firstBracket = cleanedText.indexOf('[');
+            const lastBracket = cleanedText.lastIndexOf(']');
+            if (firstBracket !== -1 && lastBracket !== -1) {
+              jsonString = cleanedText.substring(firstBracket, lastBracket + 1);
+            }
+          }
+          
+          if (!jsonString) throw new Error('Could not extract JSON');
+          
+          jsonString = jsonString
+            .replace(/,(\s*[}\]])/g, '$1')
+            .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
+            .replace(/:\s*'([^']*)'/g, ':"$1"');
+          
+          const theoryQuestions = JSON.parse(jsonString);
+          
+          const validTheoryQuestions = theoryQuestions.filter((q: any) => 
+            q.question && 
+            typeof q.question === 'string' &&
+            q.question.length > 20 &&
+            q.solution &&
+            typeof q.solution === 'string' &&
+            q.solution.length > 50
+          );
+          
+          if (validTheoryQuestions.length === 0) throw new Error('No valid theory questions');
+          
+          console.log(`✅ Successfully parsed ${validTheoryQuestions.length} theory questions`);
+          result = { theoryQuestions: validTheoryQuestions };
+          
+        } catch (error) {
+          console.error('❌ Theory question parsing failed');
+          
+          // Fallback theory questions
+          const topics = extractedText.split(/[.!?]+/).filter(s => s.trim().length > 40).slice(0, 10);
+          const fallbackTheory = [];
+          
+          for (let i = 0; i < Math.min(questionCount, 3); i++) {
+            fallbackTheory.push({
+              question: `Explain the key concepts discussed in the document. Provide a detailed analysis with examples.`,
+              points: 10,
+              expectedLength: "3-4 paragraphs",
+              solution: `Based on the document content:\n\n${topics.slice(0, 3).join('. ')}\n\nThe document covers these important aspects in detail, providing comprehensive information about the subject matter. A complete answer should address each key point with supporting details and examples from the material.`,
+              keyPoints: [
+                "Identify main concepts from the document",
+                "Explain relationships between key ideas",
+                "Provide specific examples or evidence",
+                "Demonstrate deep understanding of the material"
+              ]
+            });
+          }
+          
+          result = { theoryQuestions: fallbackTheory };
         }
       } else if (mode === 'questions') {
         // Generate study questions

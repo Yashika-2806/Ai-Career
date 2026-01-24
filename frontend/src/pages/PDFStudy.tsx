@@ -3,7 +3,7 @@ import { Upload, FileText, MessageCircle, Brain, Sparkles, X, CheckCircle, XCirc
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/auth.store';
 
-type StudyMode = 'chat' | 'quiz' | null;
+type StudyMode = 'chat' | 'quiz' | 'theory' | null;
 type Difficulty = 'easy' | 'moderate' | 'hard';
 
 export const PDFStudy: React.FC = () => {
@@ -34,6 +34,8 @@ export const PDFStudy: React.FC = () => {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [showFlashcard, setShowFlashcard] = useState(false);
   const [flashcardFlipped, setFlashcardFlipped] = useState(false);
+  const [theoryQuestions, setTheoryQuestions] = useState<any[]>([]);
+  const [showTheorySolutions, setShowTheorySolutions] = useState<{[key: number]: boolean}>({});
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -50,8 +52,8 @@ export const PDFStudy: React.FC = () => {
   const handleModeSelect = async (selectedMode: StudyMode) => {
     if (!file) return;
     
-    // Show settings for quiz mode
-    if (selectedMode === 'quiz') {
+    // Show settings for quiz or theory mode
+    if (selectedMode === 'quiz' || selectedMode === 'theory') {
       setMode(selectedMode);
       setShowSettings(true);
       return;
@@ -126,6 +128,9 @@ export const PDFStudy: React.FC = () => {
         setCurrentQuizIndex(0);
         setUserAnswers({});
         setQuizSubmitted(false);
+      } else if (mode === 'theory') {
+        setTheoryQuestions(data.theoryQuestions || []);
+        setShowTheorySolutions({});
       }
     } catch (error) {
       console.error('Analysis failed:', error);
@@ -214,7 +219,9 @@ export const PDFStudy: React.FC = () => {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-[#1a1f3a]/95 border border-[#00d4ff]/30 rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl card-glow">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-3xl font-bold text-white">Configure Quiz</h3>
+                <h3 className="text-3xl font-bold text-white">
+                  {mode === 'quiz' ? 'Configure Quiz' : 'Configure Theory Questions'}
+                </h3>
                 <button onClick={() => {setShowSettings(false); setMode(null);}} className="text-gray-400 hover:text-[#00d4ff]" aria-label="Close settings">
                   <X className="w-6 h-6" />
                 </button>
@@ -343,7 +350,23 @@ export const PDFStudy: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white mb-1">Interactive Quiz</h3>
-                    <p className="text-gray-400 text-sm">Test your knowledge with custom difficulty</p>
+                    <p className="text-gray-400 text-sm">Test your knowledge with MCQ flashcards</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleModeSelect('theory')}
+                disabled={!file || analyzing}
+                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition text-left"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-1">Theory Questions</h3>
+                    <p className="text-gray-400 text-sm">Practice written answers with detailed solutions</p>
                   </div>
                 </div>
               </button>
@@ -647,6 +670,135 @@ export const PDFStudy: React.FC = () => {
               );
             })()}
 
+            {/* Theory Questions Mode */}
+            {mode === 'theory' && theoryQuestions && theoryQuestions.length > 0 && (
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Theory Questions</h3>
+                    <p className="text-gray-400 text-sm mt-1">Written/Descriptive Questions • {theoryQuestions.length} Questions</p>
+                  </div>
+                  <button onClick={() => setMode(null)} className="text-gray-400 hover:text-white" aria-label="Close theory">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {theoryQuestions.map((q: any, idx: number) => (
+                    <div key={idx} className="bg-slate-800/50 rounded-xl p-6 border-2 border-white/10 hover:border-purple-400/50 transition">
+                      {/* Question Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-2xl font-bold text-purple-400">Q{idx + 1}</span>
+                            {q.points && (
+                              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-sm font-semibold rounded-full">
+                                {q.points} marks
+                              </span>
+                            )}
+                            {q.expectedLength && (
+                              <span className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full">
+                                {q.expectedLength}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-xl font-semibold text-white leading-relaxed">
+                            {q.question}
+                          </h4>
+                        </div>
+                      </div>
+
+                      {/* Key Points to Cover */}
+                      {q.keyPoints && q.keyPoints.length > 0 && !showTheorySolutions[idx] && (
+                        <div className="mb-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
+                          <h5 className="text-sm font-semibold text-cyan-300 mb-2">💡 Key Points to Cover:</h5>
+                          <ul className="space-y-1">
+                            {q.keyPoints.map((point: string, pidx: number) => (
+                              <li key={pidx} className="text-gray-300 text-sm flex items-start gap-2">
+                                <span className="text-cyan-400 mt-1">•</span>
+                                <span>{point}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Answer Area */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Your Answer:
+                        </label>
+                        <textarea
+                          placeholder="Write your detailed answer here..."
+                          rows={8}
+                          className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 resize-none"
+                        />
+                      </div>
+
+                      {/* Solution Toggle Button */}
+                      <button
+                        onClick={() => setShowTheorySolutions({
+                          ...showTheorySolutions,
+                          [idx]: !showTheorySolutions[idx]
+                        })}
+                        className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                      >
+                        {showTheorySolutions[idx] ? (
+                          <>
+                            <XCircle className="w-5 h-5" />
+                            Hide Model Answer
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5" />
+                            Show Model Answer
+                          </>
+                        )}
+                      </button>
+
+                      {/* Model Solution */}
+                      {showTheorySolutions[idx] && q.solution && (
+                        <div className="mt-4 animate-fade-in">
+                          <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 border-2 border-green-500/50 rounded-xl p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6 text-white" />
+                              </div>
+                              <h5 className="text-xl font-bold text-white">Model Answer</h5>
+                            </div>
+                            <div className="prose prose-invert max-w-none">
+                              <p className="text-gray-200 leading-relaxed whitespace-pre-wrap">
+                                {q.solution}
+                              </p>
+                            </div>
+                            {q.keyPoints && q.keyPoints.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-green-500/30">
+                                <h6 className="text-sm font-semibold text-green-300 mb-2">✓ Key Elements Covered:</h6>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {q.keyPoints.map((point: string, pidx: number) => (
+                                    <div key={pidx} className="flex items-start gap-2 text-sm text-gray-300">
+                                      <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                                      <span>{point}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {setMode(null); setTheoryQuestions([]); setShowTheorySolutions({});}}
+                  className="w-full mt-6 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition"
+                >
+                  Generate New Questions
+                </button>
+              </div>
+            )}
 
           </div>
         )}
