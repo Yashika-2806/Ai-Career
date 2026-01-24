@@ -101,12 +101,12 @@ export const interviewController = {
       if (suspiciousActivities || tabSwitches) {
         conversation.metadata = {
           ...conversation.metadata,
-          proctoringData: {
+          proctoring: {
             suspiciousActivities: suspiciousActivities || 0,
             tabSwitches: tabSwitches || 0,
             timestamp: new Date(),
           },
-        };
+        } as any;
       }
 
       await conversation.save();
@@ -162,12 +162,12 @@ export const mentorController = {
 
       // Generate contextual response
       const userContext = `College student on ${currentPage} page`;
-      const userHistory = 'Previous learnings and progress';
+      const userHistory = [] as any[];
 
       const prompt = GLOBAL_MENTOR_PROMPTS.contextAwareResponse(
         userContext,
         currentPage,
-        userHistory,
+        JSON.stringify(userHistory),
         userQuestion
       );
 
