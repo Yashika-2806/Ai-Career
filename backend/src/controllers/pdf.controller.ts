@@ -99,33 +99,35 @@ export const pdfController = {
         
         const quizPrompt = `You are an expert educator creating quiz questions for students.
 
-IMPORTANT: Create questions ONLY from the actual content below. DO NOT use generic questions.
+CRITICAL: Return ONLY valid JSON. NO markdown, NO code blocks, NO extra text.
 
 Document Content:
 ${extractedText.substring(0, 8000)}
 
-Task: Generate exactly ${questionCount} multiple-choice questions based on the SPECIFIC information in this document.
+Create exactly ${questionCount} multiple-choice questions from the SPECIFIC content above.
 
-Difficulty Level: ${difficulty}
-- ${difficulty === 'easy' ? 'Focus on basic facts, definitions, and key points mentioned in the document' : difficulty === 'moderate' ? 'Test understanding and application of concepts from the document' : 'Require deep analysis and synthesis of information from the document'}
+Difficulty: ${difficulty}
 
-Requirements for EACH question:
-1. Question must reference SPECIFIC information from the document (names, dates, concepts, facts)
-2. All 4 options must be plausible but only ONE is correct based on the document
-3. Wrong options should be related to the topic but clearly incorrect
-4. Include a brief explanation citing the document
-
-Output Format (STRICT JSON, no markdown, no code blocks):
+STRICT JSON FORMAT - Start with [ and end with ]:
 [
   {
-    "question": "Specific question from document content?",
-    "options": ["Correct answer from doc", "Plausible wrong option 1", "Plausible wrong option 2", "Plausible wrong option 3"],
+    "question": "specific question from document",
+    "options": ["option1", "option2", "option3", "option4"],
     "correctAnswer": 0,
-    "explanation": "Brief explanation referencing the document"
+    "explanation": "brief explanation"
   }
 ]
 
-Generate ${questionCount} questions NOW:`;
+Rules:
+- Questions MUST be from actual document content (not generic)
+- Use specific names, facts, or concepts from text
+- correctAnswer is index 0-3
+- No trailing commas
+- Escape quotes in strings
+
+Return ONLY the JSON array, nothing else:`;
+
+        console.log('📝 Sending quiz prompt to AI...');
         
         const quizResponse = await aiService.sendMessage(quizPrompt);
         console.log('✅ Quiz response received:', { 
@@ -139,27 +141,59 @@ Generate ${questionCount} questions NOW:`;
         // Parse JSON from response with better error handling
         try {
           // Remove markdown code blocks if present
-          let cleanedText = quizText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+          let cleanedText = quizText
+            .replace(/```json\s*/gi, '')
+            .replace(/```\s*/g, '')
+            .replace(/\n/g, ' ')
+            .trim();
           
           // Extract JSON array
           const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
           if (jsonMatch) {
-            const questions = JSON.parse(jsonMatch[0]);
+            let jsonString = jsonMatch[0];
             
-            // Validate questions
-            if (Array.isArray(questions) && questions.length > 0) {
-              console.log(`✅ Successfully parsed ${questions.length} questions`);
-              result = { questions };
-            } else {
-              throw new Error('No valid questions in array');
+            // Fix common JSON issues
+            jsonString = jsonString
+              .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
+              .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
+              .replace(/'/g, '"');      // Replace single quotes with double quotes
+            
+            try {
+              const questions = JSON.parse(jsonString);
+              
+              // Validate questions
+              if (Array.isArray(questions) && questions.length > 0) {
+                // Validate each question has required fields
+                const validQuestions = questions.filter(q => 
+                  q.question && 
+                  Array.isArray(q.options) && 
+                  q.options.length === 4 &&
+                  typeof q.correctAnswer === 'number' &&
+                  q.correctAnswer >= 0 && 
+                  q.correctAnswer <= 3
+                );
+                
+                if (validQuestions.length > 0) {
+                  console.log(`✅ Successfully parsed ${validQuestions.length} valid questions`);
+                  result = { questions: validQuestions };
+                } else {
+                  throw new Error('No valid questions after validation');
+                }
+              } else {
+                throw new Error('No valid questions in array');
+              }
+            } catch (jsonError) {
+              console.error('❌ JSON parse error:', jsonError);
+              console.log('Attempted to parse:', jsonString.substring(0, 300));
+              throw new Error('Failed to parse questions JSON');
             }
           } else {
             console.error('❌ No JSON array found in AI response');
-            throw new Error('Invalid response format');
+            console.log('Response preview:', quizText.substring(0, 500));
+            throw new Error('Invalid response format - no JSON array found');
           }
-        } catch (parseError) {
-          console.error('❌ Quiz JSON parse error:', parseError);
-          console.log('Raw AI response (first 500 chars):', quizText.substring(0, 500));
+        } catch (parseError: any) {
+          console.error('❌ Quiz generation error:', parseError.message);
           
           // Better fallback: Create questions from extracted text
           const sentences = extractedText.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(0, 10);
