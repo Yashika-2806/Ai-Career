@@ -12,17 +12,31 @@ cd /var/www/Ai-Career || { echo "❌ Project directory not found"; exit 1; }
 echo "📥 Pulling latest code from GitHub..."
 git pull origin main || { echo "❌ Git pull failed"; exit 1; }
 
+# Check if frontend folder exists and has its own build
+if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+  echo "📦 Building frontend..."
+  cd frontend
+  npm install
+  npm run build || { echo "⚠️  Frontend build failed, continuing..."; }
+  cd ..
+else
+  echo "📦 Building root frontend..."
+  npm install
+  npm run build || { echo "⚠️  Root build failed, continuing..."; }
+fi
+
 # Navigate to backend
 cd backend || { echo "❌ Backend directory not found"; exit 1; }
 
 # Install dependencies (only if package.json changed)
-if git diff HEAD@{1} HEAD --name-only | grep -q "package.json"; then
+if git diff HEAD@{1} HEAD --name-only | grep -q "backend/package.json"; then
   echo "📦 Installing backend dependencies..."
   npm install
 fi
 
-# Build backend
-echo "🔨 Building backend..."
+# Clean and rebuild backend
+echo "🔨 Cleaning and building backend..."
+rm -rf dist
 npm run build || { echo "❌ Backend build failed"; exit 1; }
 
 # Restart PM2 process
