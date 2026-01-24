@@ -636,8 +636,31 @@ User's Response: ${userApproach}`,
                 {/* Visualization */}
                 {visualizerSteps.length > 0 && currentStepData ? (
                   <>
+                    {/* Line-by-Line Code Execution */}
                     <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-3">
-                      <h3 className="text-sm font-bold text-white mb-3">Array</h3>
+                      <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <Code2 className="w-4 h-4 text-[#00d4ff]" />
+                        Code Execution
+                      </h3>
+                      <div className="bg-[#0a0e27] rounded p-2 font-mono text-xs overflow-auto max-h-[120px]">
+                        {codeLines.map((line, index) => (
+                          <div
+                            key={index}
+                            className={`py-1 px-2 transition-all rounded ${
+                              currentStepData?.line === index + 1
+                                ? 'bg-gradient-to-r from-[#00d4ff]/30 to-[#0ea5e9]/30 border-l-2 border-[#00d4ff] text-white font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            <span className="text-gray-600 mr-2">{String(index + 1).padStart(2, '0')}</span>
+                            {line || ' '}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-3">
+                      <h3 className="text-sm font-bold text-white mb-3">Array Visualization</h3>
                       
                       <div className="flex items-end justify-center gap-1 mb-4 min-h-[100px]">
                         {currentStepData.array?.map((value: number, index: number) => {
@@ -664,6 +687,7 @@ User's Response: ${userApproach}`,
 
                       {/* Variables */}
                       <div className="bg-[#0a0e27] rounded p-2 mb-2">
+                        <h4 className="text-[10px] font-semibold text-[#00d4ff] mb-1">Variables</h4>
                         <div className="grid grid-cols-3 gap-1">
                           {Object.entries(currentStepData.variables).map(([key, value]) => (
                             <div key={key} className="bg-[#1a1f3a] rounded px-2 py-1 text-center">
