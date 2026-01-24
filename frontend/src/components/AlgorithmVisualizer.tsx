@@ -58,6 +58,82 @@ function quickSort(arr, low = 0, high = arr.length - 1) {
     quickSort(arr, pi + 1, high);
   }
   return arr;
+}`,
+    'merge-sort': `// Merge Sort
+function mergeSort(arr) {
+  if (arr.length <= 1) return arr;
+  let mid = Math.floor(arr.length / 2);
+  let left = mergeSort(arr.slice(0, mid));
+  let right = mergeSort(arr.slice(mid));
+  return merge(left, right);
+}`,
+    'insertion-sort': `// Insertion Sort
+function insertionSort(arr) {
+  for (let i = 1; i < arr.length; i++) {
+    let key = arr[i];
+    let j = i - 1;
+    while (j >= 0 && arr[j] > key) {
+      arr[j + 1] = arr[j];
+      j--;
+    }
+    arr[j + 1] = key;
+  }
+  return arr;
+}`,
+    'selection-sort': `// Selection Sort
+function selectionSort(arr) {
+  for (let i = 0; i < arr.length - 1; i++) {
+    let minIdx = i;
+    for (let j = i + 1; j < arr.length; j++) {
+      if (arr[j] < arr[minIdx]) {
+        minIdx = j;
+      }
+    }
+    [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+  }
+  return arr;
+}`,
+    'linear-search': `// Linear Search
+function linearSearch(arr, target) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] === target) {
+      return i;
+    }
+  }
+  return -1;
+}`,
+    'two-pointer': `// Two Pointer - Two Sum Sorted
+function twoSum(arr, target) {
+  let left = 0;
+  let right = arr.length - 1;
+  while (left < right) {
+    let sum = arr[left] + arr[right];
+    if (sum === target) return [left, right];
+    if (sum < target) left++;
+    else right--;
+  }
+  return [-1, -1];
+}`,
+    'reverse-array': `// Reverse Array
+function reverseArray(arr) {
+  let left = 0;
+  let right = arr.length - 1;
+  while (left < right) {
+    [arr[left], arr[right]] = [arr[right], arr[left]];
+    left++;
+    right--;
+  }
+  return arr;
+}`,
+    'find-max': `// Find Maximum Element
+function findMax(arr) {
+  let max = arr[0];
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] > max) {
+      max = arr[i];
+    }
+  }
+  return max;
 }`
   };
 
@@ -75,41 +151,193 @@ function quickSort(arr, low = 0, high = arr.length - 1) {
   const simulateExecution = () => {
     if (!userCode.trim()) return;
     
-    // Parse and simulate code execution (simplified version)
     const mockSteps: ExecutionStep[] = [];
     const arr = [64, 34, 25, 12, 22, 11, 90];
+    const codeLines = userCode.split('\n');
     
-    // Bubble Sort simulation
-    for (let i = 0; i < arr.length - 1; i++) {
-      for (let j = 0; j < arr.length - i - 1; j++) {
-        mockSteps.push({
-          line: 4 + i * 2 + j,
-          variables: { i, j, n: arr.length },
-          array: [...arr],
-          highlightIndices: [j, j + 1],
-          description: `Comparing arr[${j}] (${arr[j]}) with arr[${j + 1}] (${arr[j + 1]})`
-        });
-
-        if (arr[j] > arr[j + 1]) {
-          [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-          mockSteps.push({
-            line: 5 + i * 2 + j,
-            variables: { i, j, n: arr.length },
-            array: [...arr],
-            highlightIndices: [j, j + 1],
-            description: `Swapped! arr[${j}] and arr[${j + 1}]`
-          });
+    // Parse user's code and simulate execution
+    try {
+      // Extract variable declarations and initialize them
+      const variables: Record<string, any> = { n: arr.length, arr: [...arr] };
+      
+      // Process each line of code
+      for (let lineIdx = 0; lineIdx < codeLines.length; lineIdx++) {
+        const line = codeLines[lineIdx].trim();
+        
+        // Skip comments and empty lines
+        if (!line || line.startsWith('//') || line.startsWith('function') || line === '}' || line === '{') {
+          continue;
+        }
+        
+        // Variable declarations
+        if (line.includes('let ') || line.includes('const ')) {
+          const match = line.match(/(?:let|const)\s+(\w+)\s*=\s*(.+?)[;,]/);
+          if (match) {
+            const varName = match[1];
+            const varValue = match[2].trim();
+            
+            // Evaluate the value
+            if (varValue.includes('arr.length')) {
+              variables[varName] = arr.length;
+            } else if (varValue.includes('Math.floor')) {
+              const expr = varValue.replace(/(\w+)/g, (m) => variables[m] !== undefined ? variables[m] : m);
+              try {
+                variables[varName] = eval(expr);
+              } catch {
+                variables[varName] = 0;
+              }
+            } else if (!isNaN(Number(varValue))) {
+              variables[varName] = Number(varValue);
+            } else {
+              variables[varName] = varValue;
+            }
+            
+            mockSteps.push({
+              line: lineIdx + 1,
+              variables: { ...variables },
+              array: [...arr],
+              highlightIndices: [],
+              description: `Initialized ${varName} = ${variables[varName]}`
+            });
+          }
+        }
+        
+        // For loops
+        if (line.includes('for (')) {
+          const match = line.match(/for\s*\(\s*let\s+(\w+)\s*=\s*(\d+)/);
+          if (match) {
+            const loopVar = match[1];
+            variables[loopVar] = Number(match[2]);
+            
+            mockSteps.push({
+              line: lineIdx + 1,
+              variables: { ...variables },
+              array: [...arr],
+              highlightIndices: [],
+              description: `Starting loop with ${loopVar} = ${variables[loopVar]}`
+            });
+          }
+        }
+        
+        // Comparisons
+        if (line.includes('if (') && line.includes('[') && line.includes('>')) {
+          const match = line.match(/arr\[(\w+)\]\s*>\s*arr\[(\w+)\s*\+\s*1\]/);
+          if (match) {
+            const idx1 = match[1];
+            const val1 = variables[idx1] !== undefined ? variables[idx1] : 0;
+            const val2 = val1 + 1;
+            
+            if (val2 < arr.length) {
+              mockSteps.push({
+                line: lineIdx + 1,
+                variables: { ...variables },
+                array: [...arr],
+                highlightIndices: [val1, val2],
+                description: `Comparing arr[${val1}] (${arr[val1]}) with arr[${val2}] (${arr[val2]})`
+              });
+            }
+          }
+        }
+        
+        // Array swaps
+        if (line.includes('[arr[') && line.includes(']=')) {
+          const match = line.match(/\[arr\[(\w+)\],\s*arr\[(\w+)\s*\+\s*1\]\]\s*=\s*\[arr\[(\w+)\s*\+\s*1\],\s*arr\[(\w+)\]\]/);
+          if (match) {
+            const idx = match[1];
+            const val = variables[idx] !== undefined ? variables[idx] : 0;
+            
+            if (val < arr.length - 1) {
+              [arr[val], arr[val + 1]] = [arr[val + 1], arr[val]];
+              
+              mockSteps.push({
+                line: lineIdx + 1,
+                variables: { ...variables },
+                array: [...arr],
+                highlightIndices: [val, val + 1],
+                description: `Swapped! arr[${val}] ⇄ arr[${val + 1}]`
+              });
+            }
+          }
+        }
+        
+        // While loops
+        if (line.includes('while (')) {
+          const match = line.match(/while\s*\(\s*(\w+)\s*(<|>|<=|>=|===|!==)\s*(\w+)/);
+          if (match) {
+            const var1 = match[1];
+            const operator = match[2];
+            const var2 = match[3];
+            
+            mockSteps.push({
+              line: lineIdx + 1,
+              variables: { ...variables },
+              array: [...arr],
+              highlightIndices: [],
+              description: `While loop: checking ${var1} ${operator} ${var2}`
+            });
+          }
+        }
+        
+        // Variable updates (i++, j--, etc.)
+        if (line.match(/^\w+\+\+/) || line.match(/^\w+--/)) {
+          const varName = line.replace(/(\+\+|--|;)/g, '').trim();
+          if (variables[varName] !== undefined) {
+            variables[varName] += line.includes('++') ? 1 : -1;
+            
+            mockSteps.push({
+              line: lineIdx + 1,
+              variables: { ...variables },
+              array: [...arr],
+              highlightIndices: [],
+              description: `Updated ${varName} = ${variables[varName]}`
+            });
+          }
         }
       }
-    }
+      
+      // Add completion step
+      mockSteps.push({
+        line: -1,
+        variables: { ...variables },
+        array: [...arr],
+        highlightIndices: [],
+        description: 'Execution Complete! ✅'
+      });
+      
+    } catch (error) {
+      console.error('Error parsing code:', error);
+      // Fallback to simple bubble sort simulation
+      for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = 0; j < arr.length - i - 1; j++) {
+          mockSteps.push({
+            line: -1,
+            variables: { i, j },
+            array: [...arr],
+            highlightIndices: [j, j + 1],
+            description: `Comparing elements at positions ${j} and ${j + 1}`
+          });
 
-    mockSteps.push({
-      line: -1,
-      variables: {},
-      array: [...arr],
-      highlightIndices: [],
-      description: 'Sorting Complete! ✅'
-    });
+          if (arr[j] > arr[j + 1]) {
+            [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+            mockSteps.push({
+              line: -1,
+              variables: { i, j },
+              array: [...arr],
+              highlightIndices: [j, j + 1],
+              description: `Swapped elements!`
+            });
+          }
+        }
+      }
+      
+      mockSteps.push({
+        line: -1,
+        variables: {},
+        array: [...arr],
+        highlightIndices: [],
+        description: 'Execution Complete! ✅'
+      });
+    }
 
     setSteps(mockSteps);
     setCurrentStep(0);
@@ -170,9 +398,16 @@ function quickSort(arr, low = 0, high = arr.length - 1) {
                   className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-sm"
                 >
                   <option value="">Select Template</option>
-                  <option value="bubble-sort">Bubble Sort</option>
-                  <option value="binary-search">Binary Search</option>
-                  <option value="quick-sort">Quick Sort</option>
+                  <option value="bubble-sort">🔵 Bubble Sort</option>
+                  <option value="selection-sort">🎯 Selection Sort</option>
+                  <option value="insertion-sort">📌 Insertion Sort</option>
+                  <option value="merge-sort">🔀 Merge Sort</option>
+                  <option value="quick-sort">⚡ Quick Sort</option>
+                  <option value="binary-search">🔍 Binary Search</option>
+                  <option value="linear-search">➡️ Linear Search</option>
+                  <option value="two-pointer">👉👈 Two Pointer</option>
+                  <option value="reverse-array">🔄 Reverse Array</option>
+                  <option value="find-max">🏆 Find Maximum</option>
                 </select>
               </div>
               
@@ -198,21 +433,25 @@ function quickSort(arr, low = 0, high = arr.length - 1) {
             {/* Line-by-Line Execution */}
             {steps.length > 0 && (
               <div className="bg-[#1a1f3a]/90 backdrop-blur-md border border-[#00d4ff]/30 rounded-xl p-4">
-                <h3 className="text-xl font-bold text-white mb-4">Code Execution</h3>
+                <h3 className="text-xl font-bold text-white mb-4">Code Execution (Line-by-Line)</h3>
                 <div className="bg-[#0f1629] rounded-lg p-4 font-mono text-sm overflow-auto max-h-[200px]">
                   {codeLines.map((line, index) => (
                     <div
                       key={index}
-                      className={`py-1 px-2 transition-all ${
+                      className={`py-1 px-2 transition-all rounded ${
                         currentStepData?.line === index + 1
-                          ? 'bg-[#00d4ff]/20 border-l-4 border-[#00d4ff] text-white font-bold'
-                          : 'text-gray-400'
+                          ? 'bg-gradient-to-r from-[#00d4ff]/30 to-[#0ea5e9]/30 border-l-4 border-[#00d4ff] text-white font-bold shadow-lg shadow-[#00d4ff]/20 scale-[1.02]'
+                          : 'text-gray-400 hover:bg-white/5'
                       }`}
                     >
-                      <span className="text-gray-600 mr-3">{index + 1}</span>
-                      {line || ' '}
+                      <span className="text-gray-600 mr-4 select-none">{String(index + 1).padStart(2, '0')}</span>
+                      <span className={currentStepData?.line === index + 1 ? 'text-[#00d4ff]' : ''}>{line || ' '}</span>
                     </div>
                   ))}
+                </div>
+                <div className="mt-3 text-xs text-gray-400 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#00d4ff] rounded-full animate-pulse"></div>
+                  Currently executing line {currentStepData?.line > 0 ? currentStepData.line : 'N/A'}
                 </div>
               </div>
             )}
