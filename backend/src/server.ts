@@ -24,10 +24,14 @@ const PORT = process.env.PORT || 5001;
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:5173',
+    'https://ai-career-0628.vercel.app',
+    'https://ai-career-0628-30r8msozy-yashika-sapras-projects.vercel.app',
     'http://localhost:5173',
     'http://localhost:5174',
   ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json({ limit: '10mb' }));
