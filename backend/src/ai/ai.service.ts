@@ -131,9 +131,6 @@ export class AIService {
         }
       };
     }
-        }
-      };
-    }
   }
 
   /**
