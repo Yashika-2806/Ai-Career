@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Download, Linkedin, Github, Code2, Trophy, 
-  Sparkles, RefreshCw, Plus, X, Edit2, Save, Brain, Home as HomeIcon, LogOut
+  Sparkles, RefreshCw, Plus, X, Edit2, Save, Brain, Home as HomeIcon, LogOut, Upload, Image as ImageIcon, Palette
 } from 'lucide-react';
 import { resumeService } from '../services/api';
 import jsPDF from 'jspdf';
@@ -32,9 +32,12 @@ interface ProfileInputs {
   linkedinUrl: string;
 }
 
+type ResumeTemplate = 'modern' | 'classic' | 'minimal' | 'creative' | 'professional';
+
 export const Resume: React.FC = () => {
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = () => {
     logout();
@@ -44,10 +47,14 @@ export const Resume: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAddDataModal, setShowAddDataModal] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [newItemContent, setNewItemContent] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>('modern');
+  const [profilePicture, setProfilePicture] = useState<string>('');
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   
   const [inputs, setInputs] = useState<ProfileInputs>({
     githubUrl: '',
@@ -278,6 +285,88 @@ export const Resume: React.FC = () => {
     setEditContent('');
   };
 
+  // Profile picture upload handler
+  const handleProfilePictureUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        alert('File size must be less than 2MB');
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+      }
+
+      setProfilePictureFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicture(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setProfilePicture('');
+    setProfilePictureFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Template configurations
+  const templates = {
+    modern: {
+      name: 'Modern',
+      primaryColor: '#00d4ff',
+      secondaryColor: '#0ea5e9',
+      accentColor: '#1a1f3a',
+      font: 'sans-serif',
+      layout: 'single-column',
+      icon: '🎨'
+    },
+    classic: {
+      name: 'Classic',
+      primaryColor: '#1e3a8a',
+      secondaryColor: '#3b82f6',
+      accentColor: '#f3f4f6',
+      font: 'serif',
+      layout: 'two-column',
+      icon: '📋'
+    },
+    minimal: {
+      name: 'Minimal',
+      primaryColor: '#000000',
+      secondaryColor: '#6b7280',
+      accentColor: '#ffffff',
+      font: 'sans-serif',
+      layout: 'single-column',
+      icon: '✨'
+    },
+    creative: {
+      name: 'Creative',
+      primaryColor: '#7c3aed',
+      secondaryColor: '#a78bfa',
+      accentColor: '#faf5ff',
+      font: 'sans-serif',
+      layout: 'two-column',
+      icon: '🎭'
+    },
+    professional: {
+      name: 'Professional',
+      primaryColor: '#047857',
+      secondaryColor: '#10b981',
+      accentColor: '#ecfdf5',
+      font: 'sans-serif',
+      layout: 'single-column',
+      icon: '💼'
+    }
+  };
+
   const handleDownloadPDF = () => {
     if (!resumeGenerated) return;
 
@@ -288,6 +377,20 @@ export const Resume: React.FC = () => {
       const margin = 15;
       const maxWidth = pageWidth - 2 * margin;
       let yPosition = margin;
+
+      const template = templates[selectedTemplate];
+
+      // Add profile picture if available
+      if (profilePicture) {
+        try {
+          const imgWidth = 30;
+          const imgHeight = 30;
+          const imgX = pageWidth - margin - imgWidth;
+          doc.addImage(profilePicture, 'JPEG', imgX, yPosition, imgWidth, imgHeight, undefined, 'FAST');
+        } catch (error) {
+          console.error('Failed to add profile picture:', error);
+        }
+      }
 
       doc.setFontSize(10);
 
@@ -367,19 +470,42 @@ export const Resume: React.FC = () => {
 
       <div className="max-w-7xl mx-auto relative z-10 pt-20">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-5xl font-bold text-white mb-2">Smart Resume Builder</h1>
             <p className="text-[#00d4ff] text-xl">AI-powered with multi-platform sync & custom editing</p>
           </div>
           {resumeGenerated && (
-            <button
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] text-[#0a0e27] font-bold rounded-lg transition btn-primary-glow text-base"
-            >
-              <Download className="w-5 h-5" />
-              Download PDF
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => setShowTemplateSelector(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-[#1a1f3a] hover:bg-[#1a1f3a]/80 border border-[#00d4ff]/30 rounded-lg text-white transition hover-glow-cyan"
+              >
+                <Palette className="w-5 h-5" />
+                Template: {templates[selectedTemplate].name}
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 bg-[#1a1f3a] hover:bg-[#1a1f3a]/80 border border-[#00d4ff]/30 rounded-lg text-white transition hover-glow-cyan"
+              >
+                <ImageIcon className="w-5 h-5" />
+                {profilePicture ? 'Change Photo' : 'Add Photo'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureUpload}
+                className="hidden"
+              />
+              <button
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] text-[#0a0e27] font-bold rounded-lg transition btn-primary-glow text-base"
+              >
+                <Download className="w-5 h-5" />
+                Download PDF
+              </button>
+            </div>
           )}
         </div>
 
@@ -603,6 +729,86 @@ export const Resume: React.FC = () => {
               >
                 Add Item
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f3a] border-2 border-[#00d4ff] rounded-xl p-8 max-w-4xl w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-white">Choose Resume Template</h2>
+              <button
+                onClick={() => setShowTemplateSelector(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {(Object.keys(templates) as ResumeTemplate[]).map((templateKey) => {
+                const template = templates[templateKey];
+                return (
+                  <button
+                    key={templateKey}
+                    onClick={() => {
+                      setSelectedTemplate(templateKey);
+                      setShowTemplateSelector(false);
+                    }}
+                    className={`p-6 rounded-lg border-2 transition-all ${
+                      selectedTemplate === templateKey
+                        ? 'border-[#00d4ff] bg-[#00d4ff]/10 shadow-[0_0_20px_rgba(0,212,255,0.3)]'
+                        : 'border-white/20 bg-white/5 hover:border-[#00d4ff]/50 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="text-4xl mb-3">{template.icon}</div>
+                    <h3 className="text-xl font-bold text-white mb-2">{template.name}</h3>
+                    <div className="flex gap-2 justify-center">
+                      <div 
+                        className="w-8 h-8 rounded-full border-2 border-white/20"
+                        style={{ backgroundColor: template.primaryColor }}
+                      />
+                      <div 
+                        className="w-8 h-8 rounded-full border-2 border-white/20"
+                        style={{ backgroundColor: template.secondaryColor }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-400 mt-2">{template.layout}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-center text-gray-400 text-sm">
+              Selected: <span className="text-[#00d4ff] font-semibold">{templates[selectedTemplate].name}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Picture Preview */}
+      {profilePicture && resumeGenerated && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <div className="bg-[#1a1f3a] border-2 border-[#00d4ff] rounded-lg p-4 shadow-[0_0_30px_rgba(0,212,255,0.3)]">
+            <div className="flex items-center gap-3">
+              <img 
+                src={profilePicture} 
+                alt="Profile" 
+                className="w-20 h-20 rounded-full object-cover border-2 border-[#00d4ff]"
+              />
+              <div>
+                <p className="text-white font-semibold mb-2">Profile Photo</p>
+                <button
+                  onClick={handleRemoveProfilePicture}
+                  className="flex items-center gap-1 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500 rounded text-red-400 text-sm transition"
+                >
+                  <X className="w-4 h-4" />
+                  Remove
+                </button>
+              </div>
             </div>
           </div>
         </div>
