@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.js';
 import { AIService } from '../ai/ai.service.js';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import officeParser from 'officeparser';
 
 // Initialize AI service
 const aiService = new AIService(process.env.GEMINI_API_KEY || '');
@@ -29,41 +30,67 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   }
 }
 
+// Extract text from PPT/PPTX using officeparser
+async function extractTextFromPPT(buffer: Buffer): Promise<string> {
+  try {
+    const text = await officeParser.parseOfficeAsync(buffer);
+    return text;
+  } catch (error) {
+    console.error('PPT text extraction error:', error);
+    throw new Error('Failed to extract text from PowerPoint file');
+  }
+}
+
+// Universal text extraction function
+async function extractTextFromFile(buffer: Buffer, mimetype: string): Promise<string> {
+  if (mimetype === 'application/pdf') {
+    return extractTextFromPDF(buffer);
+  } else if (
+    mimetype === 'application/vnd.ms-powerpoint' ||
+    mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ) {
+    return extractTextFromPPT(buffer);
+  } else {
+    throw new Error('Unsupported file type');
+  }
+}
+
 export const pdfController = {
   /**
-   * Analyze PDF and generate content based on mode
+   * Analyze PDF/PPT and generate content based on mode
    */
   analyzePDF: async (req: AuthRequest, res: Response) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: 'No PDF file uploaded' });
+        return res.status(400).json({ error: 'No file uploaded' });
       }
 
       const { mode, numQuestions = '5', difficulty = 'moderate' } = req.body;
-      const pdfBuffer = req.file.buffer;
+      const fileBuffer = req.file.buffer;
+      const mimetype = req.file.mimetype;
       const questionCount = parseInt(numQuestions) || 5;
 
-      // Extract text from PDF
-      const pdfText = await extractTextFromPDF(pdfBuffer);
+      // Extract text from PDF or PPT
+      const extractedText = await extractTextFromFile(fileBuffer, mimetype);
 
-      if (!pdfText || pdfText.trim().length === 0) {
-        return res.status(400).json({ error: 'Could not extract text from PDF' });
+      if (!extractedText || extractedText.trim().length === 0) {
+        return res.status(400).json({ error: 'Could not extract text from file' });
       }
 
       let result: any = {};
 
       // Generate content based on mode
-      if (mode === 'chat') {
-        // Generate a summary for chat mode
-        console.log('🔍 Generating PDF summary...');
+      if (mode === 'summary') {
+        // Generate a summary
+        console.log('🔍 Generating document summary...');
         const summaryResponse = await aiService.sendMessage(
-          `Provide a comprehensive yet concise summary (3-4 sentences) of this document. Format it beautifully with proper structure:\n\n${pdfText.substring(0, 5000)}`
+          `Provide a comprehensive yet concise summary of this document. Organize it with clear sections and bullet points for better readability:\n\n${extractedText.substring(0, 8000)}`
         );
         console.log('✅ Summary response:', { success: summaryResponse.success, hasResponse: !!summaryResponse.response, error: summaryResponse.error });
         const summary = summaryResponse.success ? summaryResponse.response : 'Document uploaded successfully.';
         result = {
           summary,
-          pdfText: pdfText.substring(0, 10000), // Store for chat context
+          extractedText: extractedText.substring(0, 10000), // Store for reference
         };
       } else if (mode === 'quiz') {
         // Generate quiz questions
@@ -80,7 +107,7 @@ Format ONLY as valid JSON array (no markdown, no extra text):
 [{"question": "...", "options": ["Option A", "Option B", "Option C", "Option D"], "correctAnswer": 0, "explanation": "..."}]
 
 Document:
-${pdfText.substring(0, 6000)}`;
+${extractedText.substring(0, 6000)}`;
         
         const quizResponse = await aiService.sendMessage(quizPrompt);
         console.log('✅ Quiz response:', { success: quizResponse.success, hasResponse: !!quizResponse.response, error: quizResponse.error });
@@ -132,7 +159,7 @@ Format ONLY as valid JSON array (no markdown, no extra text):
 [{"question": "...", "hint": "..."}]
 
 Document:
-${pdfText.substring(0, 6000)}`;
+${extractedText.substring(0, 6000)}`;
         
         const questionsResponse = await aiService.sendMessage(questionsPrompt);
         console.log('✅ Questions response:', { success: questionsResponse.success, hasResponse: !!questionsResponse.response, error: questionsResponse.error });
@@ -165,20 +192,11 @@ ${pdfText.substring(0, 6000)}`;
         }
       }
 
-      // Store PDF text in session/database for chat mode (simplified here)
-      if (mode === 'chat') {
-        // In production, store in Redis or database with user session
-        (req as any).session = {
-          ...(req as any).session,
-          pdfContext: pdfText.substring(0, 10000),
-        };
-      }
-
       res.json(result);
     } catch (error: any) {
-      console.error('PDF analysis error:', error);
+      console.error('File analysis error:', error);
       res.status(500).json({
-        error: 'Failed to analyze PDF',
+        error: 'Failed to analyze file',
         details: error.message,
       });
     }

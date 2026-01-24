@@ -180,23 +180,26 @@ Keep each section concise but informative.
   `,
 
   findRelatedWorks: (title: string, problemStatement: string) => `
-You are a research literature expert.
+You are a research literature expert with extensive knowledge of academic papers across multiple domains.
 
 Research Paper: ${title}
-Problem: ${problemStatement}
+Problem Statement: ${problemStatement}
 
-Suggest 10 related papers/works that:
-1. Directly cite similar problems
-2. Use similar methodologies
-3. Build upon related foundations
-4. Are from top-tier venues
+Suggest 10 highly relevant related papers/works that:
+1. Directly address similar problems or research questions
+2. Use comparable methodologies or approaches
+3. Build upon related foundational work
+4. Are from top-tier venues (IEEE, ACM, Springer, NeurIPS, ICML, etc.)
+5. Represent both foundational and recent work (mix of classic and recent papers)
 
-For each, provide:
-- Paper title
-- Why it's relevant
-- Key difference from current work
+For each paper, provide:
+- **Paper Title**: Full title of the paper
+- **Authors**: Key authors (first 2-3)
+- **Year & Venue**: Publication year and conference/journal
+- **Relevance**: 1-2 sentences explaining why it's relevant
+- **Key Contribution**: What makes this paper significant
 
-Format as a numbered list with brief explanations.
+Format as a numbered list with clear sections. Be specific and academically accurate.
   `,
 
   generateCitations: (paperTitle: string, authors: string[], year: number) => `
@@ -217,7 +220,156 @@ Make citations academically correct and complete.
   `,
 
   generateMethodology: (problemStatement: string, constraints: string) => `
-You are a research methodology designer.
+You are a research methodology designer with expertise in experimental design and scientific research methods.
+
+Problem Statement: ${problemStatement}
+Constraints: ${constraints || 'None specified'}
+
+Design a comprehensive research methodology with:
+
+1. **Research Objectives**: 
+   - Primary objective
+   - 2-3 secondary objectives
+   
+2. **Hypothesis**: 
+   - Null hypothesis (H0)
+   - Alternative hypothesis (H1)
+   
+3. **Methodology Framework**:
+   - Research approach (experimental, survey-based, simulation, etc.)
+   - Step-by-step experimental design
+   - Control variables and dependent variables
+   
+4. **Data Collection**:
+   - Type of data needed
+   - Sample size estimation
+   - Data sources
+   - Collection methods
+   
+5. **Analysis Plan**:
+   - Statistical methods or analytical techniques
+   - Evaluation metrics
+   - Success criteria
+   
+6. **Timeline**: 
+   - Phase 1: Literature review (2 weeks)
+   - Phase 2: Data collection (4 weeks)
+   - Phase 3: Analysis (3 weeks)
+   - Phase 4: Writing & revision (3 weeks)
+   
+7. **Resources Required**:
+   - Software tools
+   - Datasets (if applicable)
+   - Hardware requirements
+   - Estimated budget
+
+8. **Validation Strategy**:
+   - How to validate results
+   - Comparison baselines
+   - Reproducibility measures
+
+Be specific, realistic for college-level research, and academically rigorous.
+  `,
+
+  generateLiteratureReview: (title: string, problemStatement: string, relatedWorks: string[]) => `
+You are an expert academic writer specializing in literature reviews.
+
+Research Title: ${title}
+Problem Statement: ${problemStatement}
+Related Works Found: ${relatedWorks.length > 0 ? relatedWorks.join(', ') : 'None yet'}
+
+Generate a comprehensive literature review section (800-1200 words) that:
+
+1. **Introduction to the Domain**:
+   - Provide context for the research area
+   - Explain why this area is important
+   
+2. **Historical Development**:
+   - Trace the evolution of research in this area
+   - Mention foundational work
+   
+3. **Current State of Research**:
+   - Summarize major approaches and findings
+   - Identify key research groups or papers
+   
+4. **Research Gaps**:
+   - Clearly identify what's missing in current research
+   - Explain why your problem statement addresses an important gap
+   
+5. **Methodological Approaches**:
+   - Compare different approaches used by researchers
+   - Discuss pros and cons of each
+   
+6. **Critical Analysis**:
+   - What are the limitations of existing work?
+   - What controversies or debates exist?
+   
+7. **Position of Current Work**:
+   - How does your research fit into the broader landscape?
+   - What unique contribution will it make?
+
+Write in formal academic style with proper transitions between sections. Use phrases like "Recent studies have shown...", "Building upon the work of...", "In contrast to previous approaches...".
+  `,
+
+  generateAbstract: (title: string, problemStatement: string, methodology: string) => `
+You are an expert at writing compelling research paper abstracts.
+
+Title: ${title}
+Problem Statement: ${problemStatement}
+Methodology: ${methodology}
+
+Generate a structured abstract (200-250 words) following this format:
+
+1. **Background** (2-3 sentences): Set the context and importance
+2. **Problem** (1-2 sentences): State the specific problem addressed
+3. **Proposed Approach** (2-3 sentences): Describe your methodology
+4. **Key Results** (1-2 sentences): Expected or achieved outcomes
+5. **Significance** (1 sentence): Impact and contributions
+
+Write in past tense for completed work, future tense for proposed work. Use clear, concise academic language. Avoid citations in the abstract.
+  `,
+
+  generateIntroduction: (title: string, problemStatement: string, abstract: string) => `
+You are an academic writing expert specializing in research paper introductions.
+
+Title: ${title}
+Problem Statement: ${problemStatement}
+Abstract: ${abstract}
+
+Generate a comprehensive Introduction section (500-700 words) that follows this structure:
+
+1. **Opening Hook**: Start with a compelling statement about the broader problem domain
+
+2. **Context Setting** (2-3 paragraphs):
+   - Why is this area important?
+   - What is the current state of the field?
+   - What motivates this specific research?
+
+3. **Problem Statement** (1 paragraph):
+   - Clearly articulate the specific problem
+   - Why is it challenging?
+   - Why hasn't it been solved yet?
+
+4. **Research Questions** (bullet points):
+   - List 3-4 specific research questions this work addresses
+
+5. **Proposed Approach** (1 paragraph):
+   - Brief overview of your methodology
+   - What makes your approach novel or different?
+
+6. **Contributions** (bullet points):
+   - List 3-5 key contributions of this work
+   - Be specific about what's new
+
+7. **Paper Organization** (1 paragraph):
+   - "The rest of this paper is organized as follows..."
+   - Briefly describe each section
+
+Use formal academic writing with smooth transitions. Start broad and narrow down to your specific contribution (funnel approach).
+  `,
+
+  generateMethodology: (problemStatement: string, constraints: string) => `
+You are a research methodology expert.
 
 Problem: ${problemStatement}
 Constraints: ${constraints}

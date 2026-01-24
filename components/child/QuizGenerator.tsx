@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Sparkles, Clock, Trophy, Settings, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Sparkles, Trophy, Settings, RefreshCw, Upload, FileText, FileImage } from 'lucide-react';
 import { AIAvatar } from './AIAvatar';
 import { motion, AnimatePresence } from 'motion/react';
 import { callGeminiAPI } from '../../utils/gemini-api';
 import { VoiceAssistant } from '../VoiceAssistant';
+import axios from 'axios';
 
 interface QuizGeneratorProps {
   onBack: () => void;
@@ -13,6 +14,7 @@ type Question = {
   question: string;
   options: string[];
   correctAnswer: number;
+  explanation?: string;
 };
 
 type QuizResult = {
@@ -23,6 +25,8 @@ type QuizResult = {
 
 export function QuizGenerator({ onBack }: QuizGeneratorProps) {
   const [content, setContent] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [mode, setMode] = useState<'file' | 'text'>('file');
   const [isGenerating, setIsGenerating] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -32,6 +36,9 @@ export function QuizGenerator({ onBack }: QuizGeneratorProps) {
   const [apiKey, setApiKey] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 
   useEffect(() => {
     const stored = localStorage.getItem('gemini_api_key');
@@ -47,7 +54,72 @@ export function QuizGenerator({ onBack }: QuizGeneratorProps) {
 
   const sampleContent = "Photosynthesis is the process by which green plants use sunlight to make their own food. Plants take in carbon dioxide from the air and water from the soil. Using the energy from sunlight, they convert these into glucose (sugar) and oxygen. The oxygen is released into the air, which we breathe. Chlorophyll, the green pigment in plants, plays a crucial role in capturing sunlight.";
 
-  const generateQuiz = async () => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const validTypes = [
+        'application/pdf',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      ];
+      
+      if (validTypes.includes(file.type)) {
+        setSelectedFile(file);
+      } else {
+        alert('Please select a PDF or PowerPoint file');
+      }
+    }
+  };
+
+  const generateQuizFromFile = async () => {
+    if (!selectedFile) return;
+
+    setIsGenerating(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('mode', 'quiz');
+      formData.append('numQuestions', '5');
+      formData.append('difficulty', 'moderate');
+
+      const token = localStorage.getItem('auth_token');
+      
+      const response = await axios.post(`${API_BASE_URL}/api/pdf/analyze`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+
+      if (response.data.questions && response.data.questions.length > 0) {
+        setQuestions(response.data.questions);
+        setQuizStarted(true);
+      } else {
+        throw new Error('No questions returned from server');
+      }
+    } catch (error: any) {
+      console.error('Error generating quiz from file:', error);
+      alert(
+        'Error: ' + (error.response?.data?.error || error.message || 'Failed to generate quiz. Please try again.')
+      );
+      
+      // Fallback to demo questions
+      const demoQuestions: Question[] = [
+        {
+          question: "Based on the document, what is the main topic?",
+          options: ["Understanding the subject", "Learning new things", "Exploring ideas", "All of the above"],
+          correctAnswer: 3
+        }
+      ];
+      setQuestions(demoQuestions);
+      setQuizStarted(true);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generateQuizFromText = async () => {
     if (!content.trim()) return;
 
     setIsGenerating(true);
@@ -68,22 +140,12 @@ export function QuizGenerator({ onBack }: QuizGeneratorProps) {
           },
           {
             question: "What do plants take in from the air during photosynthesis?",
-            options: [
-              "Oxygen",
-              "Nitrogen",
-              "Carbon dioxide",
-              "Hydrogen"
-            ],
+            options: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"],
             correctAnswer: 2
           },
           {
             question: "What is the green pigment in plants called?",
-            options: [
-              "Melanin",
-              "Chlorophyll",
-              "Hemoglobin",
-              "Carotene"
-            ],
+            options: ["Melanin", "Chlorophyll", "Hemoglobin", "Carotene"],
             correctAnswer: 1
           }
         ];
@@ -96,8 +158,6 @@ export function QuizGenerator({ onBack }: QuizGeneratorProps) {
         return;
       }
 
-      console.log('Calling Gemini API with key:', apiKey.substring(0, 10) + '...');
-
       // Call Gemini API to generate quiz using utility
       const responseText = await callGeminiAPI(apiKey, {
         prompt: `Based on the following content, create exactly 5 multiple-choice questions suitable for students. Format your response as a JSON array with this exact structure:
@@ -105,7 +165,8 @@ export function QuizGenerator({ onBack }: QuizGeneratorProps) {
   {
     "question": "Question text here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctAnswer": 0
+    "correctAnswer": 0,
+    "explanation": "Brief explanation of the correct answer"
   }
 ]
 
@@ -118,13 +179,10 @@ Respond ONLY with the JSON array, no other text.`,
         maxOutputTokens: 1500,
       });
 
-      console.log('Response text:', responseText);
-      
       // Extract JSON from the response
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const parsedQuestions = JSON.parse(jsonMatch[0]);
-        console.log('Parsed questions:', parsedQuestions);
         
         if (parsedQuestions.length >= 5) {
           setQuestions(parsedQuestions.slice(0, 5));
@@ -133,73 +191,26 @@ Respond ONLY with the JSON array, no other text.`,
         }
         setQuizStarted(true);
       } else {
-        console.error('Could not extract JSON from response');
         throw new Error('Invalid response format - no JSON found');
       }
     } catch (error: any) {
       console.error('Error generating quiz:', error);
       
-      // Provide detailed error message to user
-      let errorMsg = 'Error generating quiz: ';
-      if (error.message.includes('API key')) {
-        errorMsg += 'Please check your API key in the settings.';
-      } else if (error.message.includes('connect')) {
-        errorMsg += 'Please check your internet connection and try again.';
-      } else {
-        errorMsg += error.message || 'Unknown error. Please try again.';
-      }
-      alert(errorMsg);
-      
       // Fallback to demo questions
       const demoQuestions: Question[] = [
         {
           question: "Based on the content, what is the main topic?",
-          options: [
-            "Understanding the subject",
-            "Learning new things",
-            "Exploring ideas",
-            "All of the above"
-          ],
+          options: ["Understanding the subject", "Learning new things", "Exploring ideas", "All of the above"],
           correctAnswer: 3
         },
         {
           question: "What can we learn from this content?",
-          options: [
-            "New information",
-            "Important concepts",
-            "Key ideas",
-            "All of the above"
-          ],
+          options: ["New information", "Important concepts", "Key ideas", "All of the above"],
           correctAnswer: 3
         },
         {
           question: "How would you describe this topic?",
-          options: [
-            "Interesting",
-            "Educational",
-            "Informative",
-            "All of the above"
-          ],
-          correctAnswer: 3
-        },
-        {
-          question: "What's the best way to learn this?",
-          options: [
-            "Reading carefully",
-            "Taking notes",
-            "Practicing",
-            "All of the above"
-          ],
-          correctAnswer: 3
-        },
-        {
-          question: "Why is this topic important?",
-          options: [
-            "Builds knowledge",
-            "Develops skills",
-            "Helps understanding",
-            "All of the above"
-          ],
+          options: ["Interesting", "Educational", "Informative", "All of the above"],
           correctAnswer: 3
         }
       ];
@@ -207,6 +218,14 @@ Respond ONLY with the JSON array, no other text.`,
       setQuizStarted(true);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const generateQuiz = () => {
+    if (mode === 'file') {
+      generateQuizFromFile();
+    } else {
+      generateQuizFromText();
     }
   };
 
@@ -229,12 +248,16 @@ Respond ONLY with the JSON array, no other text.`,
 
   const resetQuiz = () => {
     setContent('');
+    setSelectedFile(null);
     setQuestions([]);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
     setAnswers([]);
     setShowResult(false);
     setQuizStarted(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const retryQuiz = () => {
@@ -246,6 +269,21 @@ Respond ONLY with the JSON array, no other text.`,
 
   const calculateScore = () => {
     return answers.filter(a => a).length;
+  };
+
+  const handleUseSample = () => {
+    setMode('text');
+    setContent(sampleContent);
+  };
+
+  const getFileIcon = () => {
+    if (!selectedFile) return <Upload className="w-12 h-12" />;
+    
+    if (selectedFile.type === 'application/pdf') {
+      return <FileText className="w-12 h-12 text-red-500" />;
+    } else {
+      return <FileImage className="w-12 h-12 text-orange-500" />;
+    }
   };
 
   if (showResult) {
@@ -404,6 +442,18 @@ Respond ONLY with the JSON array, no other text.`,
                 </motion.button>
               ))}
             </div>
+
+            {selectedAnswer !== null && questions[currentQuestion].explanation && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 p-4 bg-blue-50 rounded-xl"
+              >
+                <p className="text-sm text-blue-900">
+                  <strong>Explanation:</strong> {questions[currentQuestion].explanation}
+                </p>
+              </motion.div>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -428,6 +478,8 @@ Respond ONLY with the JSON array, no other text.`,
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all"
+            aria-label="Settings"
+            title="API Settings"
           >
             <Settings className="w-5 h-5 text-gray-600" />
           </button>
@@ -468,55 +520,142 @@ Respond ONLY with the JSON array, no other text.`,
       </AnimatePresence>
 
       <AIAvatar 
-        message="Paste any text or lesson content below, and I'll create a fun quiz to test your understanding! 📝"
+        message="Upload a PDF or PowerPoint file, or paste text below, and I'll create a fun quiz to test your understanding! 📝"
         mood="happy"
       />
 
+      {/* Mode Toggle */}
+      <div className="flex gap-2 justify-center">
+        <button
+          onClick={() => setMode('file')}
+          className={`px-6 py-2 rounded-full transition-all ${
+            mode === 'file'
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Upload File
+        </button>
+        <button
+          onClick={() => setMode('text')}
+          className={`px-6 py-2 rounded-full transition-all ${
+            mode === 'text'
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Type Text
+        </button>
+      </div>
+
       <div className="bg-white rounded-2xl p-6 shadow-xl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-gray-900">Your Content</h3>
-          <button
-            onClick={() => setContent(sampleContent)}
-            className="text-sm text-purple-600 hover:text-purple-700"
-          >
-            Use Sample Text
-          </button>
-        </div>
+        {mode === 'file' ? (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-gray-900">Upload Document</h3>
+            </div>
 
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Paste the text, article, or lesson content you want to create a quiz from..."
-          className="w-full h-64 p-4 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
+            <div className="min-h-[200px] flex flex-col items-center justify-center">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="quiz-file-upload"
+              />
+              <label
+                htmlFor="quiz-file-upload"
+                className="cursor-pointer flex flex-col items-center gap-4 p-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-400 transition-colors"
+              >
+                {getFileIcon()}
+                <div className="text-center">
+                  <p className="text-gray-900 font-medium mb-1">
+                    {selectedFile ? selectedFile.name : 'Click to upload'}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    PDF or PowerPoint (Max 10MB)
+                  </p>
+                </div>
+              </label>
+            </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-sm text-gray-600">
-            {content.split(' ').filter(w => w).length} words
-          </span>
-          <button
-            onClick={generateQuiz}
-            disabled={!content.trim() || isGenerating}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles className="w-5 h-5" />
-                </motion.div>
-                <span>Generating Quiz...</span>
-              </>
-            ) : (
-              <>
-                <Trophy className="w-5 h-5" />
-                <span>Generate Quiz</span>
-              </>
-            )}
-          </button>
-        </div>
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'No file selected'}
+              </span>
+              <button
+                onClick={generateQuiz}
+                disabled={!selectedFile || isGenerating}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Sparkles className="w-5 h-5" />
+                    </motion.div>
+                    <span>Generating Quiz...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trophy className="w-5 h-5" />
+                    <span>Generate Quiz</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-gray-900">Your Content</h3>
+              <button
+                onClick={handleUseSample}
+                className="text-sm text-purple-600 hover:text-purple-700"
+              >
+                Use Sample Text
+              </button>
+            </div>
+
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Paste the text, article, or lesson content you want to create a quiz from..."
+              className="w-full h-64 p-4 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {content.split(' ').filter(w => w).length} words
+              </span>
+              <button
+                onClick={generateQuiz}
+                disabled={!content.trim() || isGenerating}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Sparkles className="w-5 h-5" />
+                    </motion.div>
+                    <span>Generating Quiz...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trophy className="w-5 h-5" />
+                    <span>Generate Quiz</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-6">
@@ -524,7 +663,7 @@ Respond ONLY with the JSON array, no other text.`,
         <ul className="space-y-2 text-gray-700">
           <li className="flex items-start gap-2">
             <span className="text-orange-600 mt-1">1.</span>
-            <span>Paste your study material, article, or lesson text</span>
+            <span>Upload a PDF or PowerPoint file, or paste text directly</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-orange-600 mt-1">2.</span>
@@ -545,18 +684,11 @@ Respond ONLY with the JSON array, no other text.`,
             generateQuiz();
             (window as any).todaiSpeak?.('Generating your quiz now');
           } else if (command.includes('restart') || command.includes('reset')) {
-            handleRestart();
+            resetQuiz();
             (window as any).todaiSpeak?.('Quiz reset. Ready to create a new one!');
-          } else if (questions.length > 0 && !showResult) {
-            // Try to match answer options
-            const optionMatch = command.match(/option\s*([a-d]|[1-4])/i);
-            if (optionMatch) {
-              const optionIndex = optionMatch[1].toLowerCase().charCodeAt(0) - 97;
-              if (optionIndex >= 0 && optionIndex < 4) {
-                setSelectedAnswer(optionIndex);
-                (window as any).todaiSpeak?.(`Option ${String.fromCharCode(65 + optionIndex)} selected`);
-              }
-            }
+          } else if (command.includes('sample') || command.includes('example')) {
+            handleUseSample();
+            (window as any).todaiSpeak?.('Sample text loaded');
           }
         }}
       />

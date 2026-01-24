@@ -207,4 +207,145 @@ export const researchController = {
       res.status(500).json({ error: 'Export failed' });
     }
   },
+
+  /**
+   * Delete research project
+   */
+  deleteProject: async (req: AuthRequest, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const project = await ResearchProject.findById(projectId);
+
+      if (!project || project.userId.toString() !== req.userId) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      await ResearchProject.findByIdAndDelete(projectId);
+      res.json({ message: 'Project deleted successfully' });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to delete project' });
+    }
+  },
+
+  /**
+   * Update project status
+   */
+  updateStatus: async (req: AuthRequest, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const { status } = req.body;
+
+      const validStatuses = ['draft', 'in-progress', 'completed', 'submitted', 'published'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+
+      const project = await ResearchProject.findById(projectId);
+
+      if (!project || project.userId.toString() !== req.userId) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      project.status = status;
+      project.updatedAt = new Date();
+      await project.save();
+
+      res.json(project);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to update status' });
+    }
+  },
+
+  /**
+   * Generate literature review
+   */
+  generateLiteratureReview: async (req: AuthRequest, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const project = await ResearchProject.findById(projectId);
+
+      if (!project || project.userId.toString() !== req.userId) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const prompt = RESEARCH_PROMPTS.generateLiteratureReview(
+        project.title,
+        project.problemStatement,
+        project.relatedWorks || []
+      );
+
+      const response = await aiService.sendMessage(prompt, `research_${projectId}`);
+
+      if (!response.success) {
+        return res.status(500).json({ error: response.error });
+      }
+
+      res.json({ literatureReview: response.response });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Literature review generation failed' });
+    }
+  },
+
+  /**
+   * Generate abstract
+   */
+  generateAbstract: async (req: AuthRequest, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const project = await ResearchProject.findById(projectId);
+
+      if (!project || project.userId.toString() !== req.userId) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const prompt = RESEARCH_PROMPTS.generateAbstract(
+        project.title,
+        project.problemStatement,
+        project.methodology || ''
+      );
+
+      const response = await aiService.sendMessage(prompt, `research_${projectId}`);
+
+      if (!response.success) {
+        return res.status(500).json({ error: response.error });
+      }
+
+      project.abstract = response.response || '';
+      await project.save();
+
+      res.json({ abstract: response.response });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Abstract generation failed' });
+    }
+  },
+
+  /**
+   * Generate introduction
+   */
+  generateIntroduction: async (req: AuthRequest, res: Response) => {
+    try {
+      const { projectId } = req.params;
+      const project = await ResearchProject.findById(projectId);
+
+      if (!project || project.userId.toString() !== req.userId) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const prompt = RESEARCH_PROMPTS.generateIntroduction(
+        project.title,
+        project.problemStatement,
+        project.abstract
+      );
+
+      const response = await aiService.sendMessage(prompt, `research_${projectId}`);
+
+      if (!response.success) {
+        return res.status(500).json({ error: response.error });
+      }
+
+      res.json({ introduction: response.response });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Introduction generation failed' });
+    }
+  },
 };

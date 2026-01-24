@@ -116,12 +116,22 @@ export const researchService = {
   get: (projectId: string) => apiClient.get(`/research/${projectId}`),
   update: (projectId: string, data: any) =>
     apiClient.put(`/research/${projectId}`, data),
+  delete: (projectId: string) =>
+    apiClient.delete(`/research/${projectId}`),
+  updateStatus: (projectId: string, status: string) =>
+    apiClient.patch(`/research/${projectId}/status`, { status }),
   summarize: (projectId: string) =>
     apiClient.post(`/research/${projectId}/summarize`),
   findRelatedWorks: (projectId: string) =>
     apiClient.post(`/research/${projectId}/related-works`),
   generateMethodology: (projectId: string, data: any) =>
     apiClient.post(`/research/${projectId}/methodology`, data),
+  generateLiteratureReview: (projectId: string) =>
+    apiClient.post(`/research/${projectId}/literature-review`),
+  generateAbstract: (projectId: string) =>
+    apiClient.post(`/research/${projectId}/abstract`),
+  generateIntroduction: (projectId: string) =>
+    apiClient.post(`/research/${projectId}/introduction`),
   export: (projectId: string, format: string) =>
     apiClient.get(`/research/${projectId}/export/${format}`),
 };

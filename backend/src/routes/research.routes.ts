@@ -37,4 +37,24 @@ router.get('/:projectId/export/:format', authMiddleware, (req, res) => {
   researchController.exportPaper(req, res);
 });
 
+router.delete('/:projectId', authMiddleware, (req, res) => {
+  researchController.deleteProject(req, res);
+});
+
+router.patch('/:projectId/status', authMiddleware, (req, res) => {
+  researchController.updateStatus(req, res);
+});
+
+router.post('/:projectId/literature-review', authMiddleware, aiLimiter, (req, res) => {
+  researchController.generateLiteratureReview(req, res);
+});
+
+router.post('/:projectId/abstract', authMiddleware, aiLimiter, (req, res) => {
+  researchController.generateAbstract(req, res);
+});
+
+router.post('/:projectId/introduction', authMiddleware, aiLimiter, (req, res) => {
+  researchController.generateIntroduction(req, res);
+});
+
 export default router;

@@ -8,7 +8,7 @@ interface IResearchProject extends Document {
   methodology: string;
   relatedWorks: string[];
   citationSuggestions: string[];
-  status: 'draft' | 'in-progress' | 'submitted' | 'published';
+  status: 'draft' | 'in-progress' | 'completed' | 'submitted' | 'published';
   exportFormats: {
     ieee?: string;
     springer?: string;
@@ -22,12 +22,12 @@ interface IResearchProject extends Document {
 const ResearchProjectSchema = new Schema<IResearchProject>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   title: { type: String, required: true },
-  abstract: { type: String, required: true },
+  abstract: { type: String, default: '' },
   problemStatement: { type: String, required: true },
-  methodology: { type: String, required: true },
-  relatedWorks: [String],
-  citationSuggestions: [String],
-  status: { type: String, enum: ['draft', 'in-progress', 'submitted', 'published'], default: 'draft' },
+  methodology: { type: String, default: '' },
+  relatedWorks: { type: [String], default: [] },
+  citationSuggestions: { type: [String], default: [] },
+  status: { type: String, enum: ['draft', 'in-progress', 'completed', 'submitted', 'published'], default: 'draft' },
   exportFormats: {
     ieee: String,
     springer: String,
