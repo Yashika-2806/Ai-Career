@@ -259,45 +259,240 @@ User's Response: ${userApproach}`,
   };
 
   const simulateExecution = () => {
-    if (!userCode.trim()) return;
+    if (!userCode.trim()) {
+      alert('Please paste some code or select a template first!');
+      return;
+    }
     
     const steps: any[] = [];
     const arr = [64, 34, 25, 12, 22, 11, 90];
     const code = userCode.toLowerCase();
     
-    if (code.includes('bubble')) {
+    // Detect algorithm type
+    if (code.includes('bubble') || code.includes('bubblesort')) {
+      // Bubble Sort
       const n = arr.length;
+      steps.push({
+        line: 1,
+        variables: { n },
+        array: [...arr],
+        highlightIndices: [],
+        description: `Starting Bubble Sort with ${n} elements`
+      });
+      
       for (let i = 0; i < n - 1; i++) {
         steps.push({
           line: 3,
           variables: { i, n },
           array: [...arr],
           highlightIndices: [],
-          description: `Pass ${i + 1}/${n - 1} starting`
+          description: `Pass ${i + 1}/${n - 1} - Bubbling largest unsorted element to position`
         });
         
         for (let j = 0; j < n - i - 1; j++) {
           steps.push({
-            line: 5,
+            line: 4,
             variables: { i, j, n },
             array: [...arr],
             highlightIndices: [j, j + 1],
-            description: `Compare arr[${j}] (${arr[j]}) with arr[${j + 1}] (${arr[j + 1]})`
+            description: `Comparing arr[${j}]=${arr[j]} with arr[${j + 1}]=${arr[j + 1]}`
           });
           
           if (arr[j] > arr[j + 1]) {
             [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
             steps.push({
-              line: 6,
+              line: 5,
               variables: { i, j, n },
               array: [...arr],
               highlightIndices: [j, j + 1],
-              description: `✅ Swapped!`
+              description: `✅ Swapped ${arr[j + 1]} and ${arr[j]}`
             });
           }
         }
+        steps.push({
+          line: 3,
+          variables: { i, n },
+          array: [...arr],
+          highlightIndices: [n - i - 1],
+          description: `Element ${arr[n - i - 1]} is now in correct position`
+        });
+      }
+    } else if (code.includes('selection') || code.includes('selectionsort')) {
+      // Selection Sort
+      for (let i = 0; i < arr.length - 1; i++) {
+        let minIdx = i;
+        steps.push({
+          line: 2,
+          variables: { i, minIdx },
+          array: [...arr],
+          highlightIndices: [i],
+          description: `Finding minimum from index ${i} onwards`
+        });
+        
+        for (let j = i + 1; j < arr.length; j++) {
+          steps.push({
+            line: 3,
+            variables: { i, j, minIdx },
+            array: [...arr],
+            highlightIndices: [minIdx, j],
+            description: `Checking arr[${j}]=${arr[j]} with current min arr[${minIdx}]=${arr[minIdx]}`
+          });
+          
+          if (arr[j] < arr[minIdx]) {
+            minIdx = j;
+            steps.push({
+              line: 4,
+              variables: { i, j, minIdx },
+              array: [...arr],
+              highlightIndices: [minIdx],
+              description: `New minimum found at index ${minIdx}: ${arr[minIdx]}`
+            });
+          }
+        }
+        
+        if (minIdx !== i) {
+          [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+          steps.push({
+            line: 6,
+            variables: { i, minIdx },
+            array: [...arr],
+            highlightIndices: [i],
+            description: `Swapped minimum ${arr[i]} to position ${i}`
+          });
+        }
+      }
+    } else if (code.includes('insertion') || code.includes('insertionsort')) {
+      // Insertion Sort
+      steps.push({
+        line: 1,
+        variables: { i: 0 },
+        array: [...arr],
+        highlightIndices: [0],
+        description: `First element ${arr[0]} is already sorted`
+      });
+      
+      for (let i = 1; i < arr.length; i++) {
+        let key = arr[i];
+        let j = i - 1;
+        
+        steps.push({
+          line: 2,
+          variables: { i, j, key },
+          array: [...arr],
+          highlightIndices: [i],
+          description: `Inserting ${key} into sorted portion`
+        });
+        
+        while (j >= 0 && arr[j] > key) {
+          steps.push({
+            line: 4,
+            variables: { i, j, key },
+            array: [...arr],
+            highlightIndices: [j, j + 1],
+            description: `Shifting ${arr[j]} to the right`
+          });
+          arr[j + 1] = arr[j];
+          j--;
+        }
+        
+        arr[j + 1] = key;
+        steps.push({
+          line: 7,
+          variables: { i, j, key },
+          array: [...arr],
+          highlightIndices: [j + 1],
+          description: `Placed ${key} at position ${j + 1}`
+        });
+      }
+    } else if (code.includes('binary') && code.includes('search')) {
+      // Binary Search
+      const target = 22;
+      let left = 0;
+      let right = arr.length - 1;
+      const sortedArr = [...arr].sort((a, b) => a - b);
+      
+      steps.push({
+        line: 1,
+        variables: { target, left, right },
+        array: sortedArr,
+        highlightIndices: [],
+        description: `Searching for ${target} in sorted array`
+      });
+      
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        steps.push({
+          line: 4,
+          variables: { left, mid, right, target },
+          array: sortedArr,
+          highlightIndices: [mid],
+          description: `Check middle: arr[${mid}]=${sortedArr[mid]}`
+        });
+        
+        if (sortedArr[mid] === target) {
+          steps.push({
+            line: 5,
+            variables: { mid, target },
+            array: sortedArr,
+            highlightIndices: [mid],
+            description: `✅ Found ${target} at index ${mid}!`
+          });
+          break;
+        }
+        
+        if (sortedArr[mid] < target) {
+          left = mid + 1;
+          steps.push({
+            line: 6,
+            variables: { left, mid, right, target },
+            array: sortedArr,
+            highlightIndices: Array.from({length: right - left + 1}, (_, i) => left + i),
+            description: `${sortedArr[mid]} < ${target}, search right half`
+          });
+        } else {
+          right = mid - 1;
+          steps.push({
+            line: 7,
+            variables: { left, mid, right, target },
+            array: sortedArr,
+            highlightIndices: Array.from({length: right - left + 1}, (_, i) => left + i),
+            description: `${sortedArr[mid]} > ${target}, search left half`
+          });
+        }
+      }
+    } else if (code.includes('linear') && code.includes('search')) {
+      // Linear Search
+      const target = 22;
+      steps.push({
+        line: 1,
+        variables: { target },
+        array: [...arr],
+        highlightIndices: [],
+        description: `Searching for ${target} sequentially`
+      });
+      
+      for (let i = 0; i < arr.length; i++) {
+        steps.push({
+          line: 2,
+          variables: { i, target },
+          array: [...arr],
+          highlightIndices: [i],
+          description: `Check arr[${i}]=${arr[i]}`
+        });
+        
+        if (arr[i] === target) {
+          steps.push({
+            line: 3,
+            variables: { i, target },
+            array: [...arr],
+            highlightIndices: [i],
+            description: `✅ Found ${target} at index ${i}!`
+          });
+          break;
+        }
       }
     } else {
+      // Default: Generic sorting visualization
       for (let i = 0; i < arr.length - 1; i++) {
         for (let j = 0; j < arr.length - i - 1; j++) {
           steps.push({
@@ -305,7 +500,7 @@ User's Response: ${userApproach}`,
             variables: { i, j },
             array: [...arr],
             highlightIndices: [j, j + 1],
-            description: `Comparing elements`
+            description: `Comparing elements at positions ${j} and ${j + 1}`
           });
           if (arr[j] > arr[j + 1]) {
             [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
@@ -314,7 +509,7 @@ User's Response: ${userApproach}`,
               variables: { i, j },
               array: [...arr],
               highlightIndices: [j, j + 1],
-              description: `Swapped!`
+              description: `Swapped ${arr[j + 1]} and ${arr[j]}`
             });
           }
         }
@@ -326,11 +521,12 @@ User's Response: ${userApproach}`,
       variables: {},
       array: [...arr],
       highlightIndices: [],
-      description: '🎉 Complete!'
+      description: '🎉 Algorithm Complete!'
     });
     
     setVisualizerSteps(steps);
     setCurrentStep(0);
+    setIsPlaying(false);
   };
 
   const handlePlay = () => setIsPlaying(!isPlaying);
@@ -385,7 +581,7 @@ User's Response: ${userApproach}`,
           <p className="text-[#00d4ff] text-xl">Master data structures and algorithms with AI feedback</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Algorithm Visualizer Section - LEFT SIDE */}
           <div className="lg:col-span-1">
             <div className="bg-gradient-to-br from-[#1a1f3a] to-[#0f1629] border-2 border-[#00d4ff] rounded-xl p-6 shadow-[0_0_30px_rgba(0,212,255,0.2)] sticky top-24">
@@ -423,8 +619,8 @@ User's Response: ${userApproach}`,
                   <textarea
                     value={userCode}
                     onChange={(e) => setUserCode(e.target.value)}
-                    placeholder="Paste code here..."
-                    className="w-full h-32 bg-[#0a0e27] border border-[#00d4ff]/30 rounded p-2 text-white font-mono text-xs resize-none focus:outline-none focus:ring-1 focus:ring-[#00d4ff]"
+                    placeholder="Paste your algorithm code here or select a template above..."
+                    className="w-full h-40 bg-[#0a0e27] border border-[#00d4ff]/30 rounded p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#00d4ff]"
                     spellCheck={false}
                   />
 
@@ -536,7 +732,7 @@ User's Response: ${userApproach}`,
           </div>
 
           {/* Main Content - RIGHT SIDE */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-1 space-y-6">
             {/* Sheet Selector Dropdown & Filters */}
             <div className="bg-[#1a1f3a]/90 backdrop-blur-md border border-[#00d4ff]/30 rounded-lg p-4 card-glow">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
