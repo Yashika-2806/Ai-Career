@@ -340,7 +340,6 @@ REQUIREMENTS:
 Return ONLY valid JSON array:
 [{"question":"Explain...","points":10,"expectedLength":"2-3 paragraphs","solution":"Complete answer...","keyPoints":["Point 1","Point 2"]}]
 
-
 Generate ${questionCount} theory questions:`;
 
         const theoryResponse = await aiService.sendMessage(theoryPrompt);
