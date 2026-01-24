@@ -54,7 +54,8 @@
           "vite": "6.3.5"
       },
       "scripts": {
-          "dev": "vite",
-          "build": "vite build"
+          "dev": "cd frontend && npm run dev",
+          "build": "cd frontend && npm install && npm run build",
+          "preview": "cd frontend && npm run preview"
       }
   }
