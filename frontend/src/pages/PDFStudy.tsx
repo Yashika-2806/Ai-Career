@@ -62,7 +62,7 @@ export const PDFStudy: React.FC = () => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || '/api';
       const formData = new FormData();
-      formData.append('pdf', file);
+      formData.append('file', file);
       formData.append('mode', selectedMode as string);
       
       const response = await fetch(`${API_BASE}/pdf/analyze`, {
@@ -102,7 +102,7 @@ export const PDFStudy: React.FC = () => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || '/api';
       const formData = new FormData();
-      formData.append('pdf', file);
+      formData.append('file', file);
       formData.append('mode', mode);
       formData.append('numQuestions', numQuestions.toString());
       formData.append('difficulty', difficulty);
