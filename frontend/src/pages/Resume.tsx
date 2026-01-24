@@ -491,15 +491,15 @@ export const Resume: React.FC = () => {
       const maxContactWidth = pageWidth - 80; // Leave space for photo on right
       
       if (personalInfo.email) {
-        doc.text('📧 ' + personalInfo.email, margin, yPosition);
+        doc.text('Email: ' + personalInfo.email, margin, yPosition);
         yPosition += 6;
       }
       if (personalInfo.phone) {
-        doc.text('📱 ' + personalInfo.phone, margin, yPosition);
+        doc.text('Phone: ' + personalInfo.phone, margin, yPosition);
         yPosition += 6;
       }
       if (personalInfo.location) {
-        doc.text('📍 ' + personalInfo.location, margin, yPosition);
+        doc.text('Location: ' + personalInfo.location, margin, yPosition);
         yPosition += 6;
       }
       if (personalInfo.address) {
