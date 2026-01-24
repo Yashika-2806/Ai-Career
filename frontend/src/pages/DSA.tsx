@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CodeSquare, ChevronRight, Search, ExternalLink, CheckCircle2, Circle, Youtube, X, Send, Sparkles, Brain, HomeIcon, LogOut } from 'lucide-react';
+import { CodeSquare, ChevronRight, Search, ExternalLink, CheckCircle2, Circle, Youtube, X, Send, Sparkles, Brain, HomeIcon, LogOut, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/auth.store';
 import { dsaService } from '../services/api';
 import { useDSAStore } from '../context/dsa.store';
+import { AlgorithmVisualizer } from '../components/AlgorithmVisualizer';
 
 interface DSAProblem {
   id: string;
@@ -53,6 +54,10 @@ export const DSA: React.FC = () => {
   const [aiFeedback, setAiFeedback] = useState('');
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [interactionComplete, setInteractionComplete] = useState(false);
+
+  // Algorithm Visualizer State
+  const [showVisualizer, setShowVisualizer] = useState(false);
+  const [visualizeProblem, setVisualizeProblem] = useState<DSAProblem | null>(null);
 
   const aiQuestions = [
     "Great job solving this problem! Can you describe your approach in detail?",
@@ -446,10 +451,21 @@ User's Response: ${userApproach}`,
                             </span>
                           </div>
                           
-                          <div className="flex items-center gap-4 text-base">
+                          <div className="flex items-center gap-4 text-base flex-wrap">
                             <span className="text-[#00d4ff]">{problem.topic}</span>
                             
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <button
+                                onClick={() => {
+                                  setVisualizeProblem(problem);
+                                  setShowVisualizer(true);
+                                }}
+                                className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_15px_rgba(0,212,255,0.5)] text-[#0a0e27] rounded-lg transition font-semibold"
+                              >
+                                <Eye className="w-4 h-4" />
+                                Visualize
+                              </button>
+                              
                               {problem.leetcodeUrl && (
                                 <a
                                   href={problem.leetcodeUrl}
@@ -642,6 +658,18 @@ User's Response: ${userApproach}`,
             </div>
           </div>
         </div>
+      )}
+
+      {/* Algorithm Visualizer */}
+      {showVisualizer && visualizeProblem && (
+        <AlgorithmVisualizer
+          isOpen={showVisualizer}
+          onClose={() => {
+            setShowVisualizer(false);
+            setVisualizeProblem(null);
+          }}
+          problemTitle={visualizeProblem.title}
+        />
       )}
     </div>
   );
