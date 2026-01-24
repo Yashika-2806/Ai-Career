@@ -21,18 +21,33 @@ const PORT = process.env.PORT || 5001;
 // ============================================
 // MIDDLEWARE
 // ============================================
+
+// CRITICAL: Log every incoming request
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📥 INCOMING REQUEST');
+  console.log('Method:', req.method);
+  console.log('Path:', req.path);
+  console.log('Origin:', req.headers.origin);
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Body:', JSON.stringify(req.body).substring(0, 200));
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  next();
+});
+
+// CRITICAL: CORS must be wide open for debugging
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    'https://ai-career-0628.vercel.app',
-    'https://ai-career-0628-30r8msozy-yashika-sapras-projects.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:5174',
-  ],
+  origin: true, // Allow ALL origins during debugging
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
 }));
+
+// CRITICAL: Handle OPTIONS explicitly
+app.options('*', (req: Request, res: Response) => {
+  console.log('✓ OPTIONS request handled for:', req.path);
+  res.status(200).end();
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
