@@ -34,6 +34,14 @@ interface ProfileInputs {
 
 type ResumeTemplate = 'modern' | 'classic' | 'minimal' | 'creative' | 'professional';
 
+interface PersonalInfo {
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  address: string;
+}
+
 export const Resume: React.FC = () => {
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
@@ -48,6 +56,7 @@ export const Resume: React.FC = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAddDataModal, setShowAddDataModal] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [newItemContent, setNewItemContent] = useState('');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -55,6 +64,14 @@ export const Resume: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>('modern');
   const [profilePicture, setProfilePicture] = useState<string>('');
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
+    fullName: '',
+    email: '',
+    phone: '',
+    location: '',
+    address: ''
+  });
   
   const [inputs, setInputs] = useState<ProfileInputs>({
     githubUrl: '',
@@ -457,26 +474,37 @@ export const Resume: React.FC = () => {
         }
       }
 
-      // Add name in header
-      let yPosition = 20;
+      // Add name in header (left side)
+      let yPosition = 18;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(24);
+      doc.setFontSize(22);
       const headerText = hexToRgb(template.headerText);
       doc.setTextColor(headerText.r, headerText.g, headerText.b);
       
-      // Extract name from first section if available
-      const personalSection = sections.find(s => s.title.includes('SUMMARY') || s.title.includes('PERSONAL'));
-      const nameMatch = personalSection?.items[0]?.content || 'Your Resume';
-      doc.text(nameMatch, margin, yPosition);
+      // Use personal info if provided
+      const displayName = personalInfo.fullName || 'Your Name';
+      doc.text(displayName, margin, yPosition);
       
-      yPosition += 10;
-      doc.setFontSize(11);
+      // Contact details below name (left side, won't overlap with photo on right)
+      yPosition += 8;
+      doc.setFontSize(9);
+      const maxContactWidth = pageWidth - 80; // Leave space for photo on right
       
-      // Extract contact info if available
-      const contactSection = sections.find(s => s.title.includes('CONTACT') || s.title.includes('INFORMATION'));
-      if (contactSection && contactSection.items.length > 0) {
-        const contactInfo = contactSection.items.map(item => item.content).join(' | ');
-        doc.text(contactInfo.substring(0, 80), margin, yPosition);
+      if (personalInfo.email) {
+        doc.text('📧 ' + personalInfo.email, margin, yPosition);
+        yPosition += 6;
+      }
+      if (personalInfo.phone) {
+        doc.text('📱 ' + personalInfo.phone, margin, yPosition);
+        yPosition += 6;
+      }
+      if (personalInfo.location) {
+        doc.text('📍 ' + personalInfo.location, margin, yPosition);
+        yPosition += 6;
+      }
+      if (personalInfo.address) {
+        const addressLines = doc.splitTextToSize(personalInfo.address, maxContactWidth);
+        doc.text(addressLines, margin, yPosition);
       }
       
       // Reset to black text for content
@@ -648,13 +676,23 @@ export const Resume: React.FC = () => {
           <div className="space-y-6">
             {/* Control Bar */}
             <div className="bg-[#1a1f3a]/90 backdrop-blur-md border border-[#00d4ff]/30 rounded-lg p-4 flex items-center justify-between card-glow">
-              <button
-                onClick={() => setShowProfileModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_20px_rgba(0,212,255,0.5)] text-[#0a0e27] rounded-lg transition font-semibold btn-primary-glow"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Update Profiles
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowProfileModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_20px_rgba(0,212,255,0.5)] text-[#0a0e27] rounded-lg transition font-semibold btn-primary-glow"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Update Profiles
+                </button>
+                
+                <button
+                  onClick={() => setShowPersonalInfoModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-semibold"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Personal Info
+                </button>
+              </div>
             </div>
 
             {/* Sections */}
@@ -907,6 +945,99 @@ export const Resume: React.FC = () => {
                   Remove
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Personal Info Modal */}
+      {showPersonalInfoModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1f3a] border-2 border-[#00d4ff] rounded-xl p-8 max-w-2xl w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-white">Personal Information</h2>
+              <button
+                onClick={() => setShowPersonalInfoModal(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">Full Name *</label>
+                <input
+                  type="text"
+                  value={personalInfo.fullName}
+                  onChange={(e) => setPersonalInfo({...personalInfo, fullName: e.target.value})}
+                  placeholder="John Doe"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#00d4ff]"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">Email *</label>
+                <input
+                  type="email"
+                  value={personalInfo.email}
+                  onChange={(e) => setPersonalInfo({...personalInfo, email: e.target.value})}
+                  placeholder="john@example.com"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#00d4ff]"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">Phone Number</label>
+                <input
+                  type="tel"
+                  value={personalInfo.phone}
+                  onChange={(e) => setPersonalInfo({...personalInfo, phone: e.target.value})}
+                  placeholder="+1 234 567 8900"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#00d4ff]"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">City / Location</label>
+                <input
+                  type="text"
+                  value={personalInfo.location}
+                  onChange={(e) => setPersonalInfo({...personalInfo, location: e.target.value})}
+                  placeholder="New York, USA"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#00d4ff]"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-300 mb-2 block">Full Address</label>
+                <textarea
+                  value={personalInfo.address}
+                  onChange={(e) => setPersonalInfo({...personalInfo, address: e.target.value})}
+                  placeholder="123 Main Street, Apartment 4B, New York, NY 10001"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#00d4ff] resize-none"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowPersonalInfoModal(false)}
+                className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/15 text-gray-300 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowPersonalInfoModal(false);
+                  alert('✅ Personal information saved!');
+                }}
+                disabled={!personalInfo.fullName || !personalInfo.email}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_20px_rgba(0,212,255,0.5)] text-[#0a0e27] font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save Information
+              </button>
             </div>
           </div>
         </div>
