@@ -106,18 +106,31 @@ export class AIService {
     } catch (error: any) {
       console.error('❌ AI Service Error:', {
         message: error.message,
-        stack: error.stack,
+        stack: error.stack?.substring(0, 500),
         code: error.code,
+        status: error.status,
         details: error.details,
       });
       
-      // Return structured error with code
+      // Specific error messages
+      let errorMessage = error.message || 'Failed to generate response';
+      if (error.message?.includes('API key')) {
+        errorMessage = 'Invalid or missing API key. Please check GEMINI_API_KEY in .env';
+      } else if (error.message?.includes('quota') || error.message?.includes('limit')) {
+        errorMessage = 'API rate limit exceeded. Please wait a moment and try again.';
+      } else if (error.status === 400) {
+        errorMessage = 'Invalid request to AI service. Check your input.';
+      }
+      
       return {
         success: false,
-        error: error.message || 'Failed to generate response',
+        error: errorMessage,
         metadata: {
-          model: 'gemini-pro',
+          model: 'gemini-1.5-flash',
           timestamp: new Date(),
+        }
+      };
+    }
         }
       };
     }

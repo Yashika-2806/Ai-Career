@@ -36,4 +36,9 @@ router.post('/chat', authMiddleware, (req, res) => {
   pdfController.chatWithPDF(req, res);
 });
 
+// Test API endpoint - check if Gemini is working
+router.get('/test-api', authMiddleware, (req, res) => {
+  pdfController.testAPI(req, res);
+});
+
 export default router;

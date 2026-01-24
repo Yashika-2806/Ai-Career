@@ -4,8 +4,22 @@ import { AIService } from '../ai/ai.service.js';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import officeParser from 'officeparser';
 
-// Initialize AI service
-const aiService = new AIService(process.env.GEMINI_API_KEY || '');
+// Initialize AI service with validation
+let aiService: AIService;
+try {
+  const apiKey = process.env.GEMINI_API_KEY || '';
+  if (!apiKey || apiKey === 'your-gemini-api-key-here') {
+    console.error('🚨 WARNING: GEMINI_API_KEY is not set or using placeholder!');
+    console.error('📝 Please set your API key in backend/.env');
+    console.error('🔗 Get key from: https://makersuite.google.com/app/apikey');
+  } else {
+    console.log('✅ Gemini API Key loaded:', apiKey.substring(0, 10) + '...');
+  }
+  aiService = new AIService(apiKey);
+} catch (error) {
+  console.error('❌ Failed to initialize AI service:', error);
+  throw error;
+}
 
 // Extract text from PDF using pdfjs-dist
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
@@ -160,12 +174,15 @@ FORMAT:
 Generate ${questionCount} questions:`;
 
         console.log('📝 Sending quiz prompt to AI (prompt length:', quizPrompt.length, 'chars)...');
+        console.log('🔑 API Key status:', process.env.GEMINI_API_KEY ? 'SET (length: ' + process.env.GEMINI_API_KEY.length + ')' : 'NOT SET');
+        console.log('📋 Prompt preview:', quizPrompt.substring(0, 300) + '...');
         
         const quizResponse = await aiService.sendMessage(quizPrompt);
         console.log('✅ Quiz response received:', { 
           success: quizResponse.success, 
           responseLength: quizResponse.response?.length || 0,
-          error: quizResponse.error 
+          error: quizResponse.error,
+          responsePreview: quizResponse.response?.substring(0, 200)
         });
         
         const quizText = quizResponse.success ? quizResponse.response : '';
@@ -243,7 +260,18 @@ Generate ${questionCount} questions:`;
           
         } catch (parseError: any) {
           console.error('❌ Quiz parsing failed:', parseError.message);
-          console.log('Full AI response:', quizText.substring(0, 1000));
+          console.log('📄 Full AI response:', quizText);
+          console.log('🔍 AI Response success status:', quizResponse.success);
+          console.log('⚠️ AI Error if any:', quizResponse.error);
+          
+          // If AI completely failed, show better error
+          if (!quizResponse.success || !quizText) {
+            console.error('🚨 AI SERVICE FAILED - Using emergency fallback');
+            return res.status(500).json({ 
+              error: `AI service failed: ${quizResponse.error || 'Unknown error'}. Please check API key and try again.`,
+              details: 'The AI could not generate questions. This usually means the API key is invalid or rate limited.'
+            });
+          }
           
           // Enhanced fallback with better quality
           console.log('⚠️ Using enhanced fallback question generation...');
@@ -486,6 +514,44 @@ Answer:`;
       res.status(500).json({
         error: 'Failed to generate response',
         details: error.message,
+      });
+    }
+  },
+
+  /**
+   * Test API endpoint to verify Gemini is working
+   */
+  testAPI: async (req: AuthRequest, res: Response) => {
+    try {
+      console.log('🧪 Testing Gemini API...');
+      console.log('🔑 API Key:', process.env.GEMINI_API_KEY ? 'SET (' + process.env.GEMINI_API_KEY.substring(0, 10) + '...)' : 'NOT SET');
+      
+      const testPrompt = 'Say "Hello! Gemini API is working perfectly!" if you can read this.';
+      const response = await aiService.sendMessage(testPrompt);
+      
+      if (response.success) {
+        console.log('✅ API Test PASSED');
+        res.json({
+          success: true,
+          message: 'Gemini API is working!',
+          response: response.response,
+          model: response.metadata?.model
+        });
+      } else {
+        console.log('❌ API Test FAILED');
+        res.status(500).json({
+          success: false,
+          error: response.error,
+          message: 'Gemini API test failed. Check your API key.',
+          apiKeySet: !!process.env.GEMINI_API_KEY
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ API Test Error:', error.message);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        apiKeySet: !!process.env.GEMINI_API_KEY
       });
     }
   },
