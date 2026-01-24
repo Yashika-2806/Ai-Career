@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Target, PlayCircle, StopCircle, CheckCircle, Clock, Brain, TrendingUp, Calendar, History, Award, AlertCircle, Home as HomeIcon, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Target, PlayCircle, StopCircle, CheckCircle, Clock, Brain, TrendingUp, Calendar, History, Award, AlertCircle, Home as HomeIcon, LogOut, Camera, CameraOff, Monitor, AlertTriangle } from 'lucide-react';
 import { interviewService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/auth.store';
+import { getAllCompanies, getCompanyByCode } from '../data/company-interview-questions';
 
 interface InterviewSession {
   conversationId: string;
@@ -10,6 +11,12 @@ interface InterviewSession {
   answer?: string;
   feedback?: string;
   score?: number;
+}
+
+interface SuspiciousActivity {
+  type: 'tab-switch' | 'copy-paste' | 'ai-pattern';
+  timestamp: Date;
+  description: string;
 }
 
 export const Interview: React.FC = () => {
@@ -27,13 +34,156 @@ export const Interview: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [interviewType, setInterviewType] = useState('technical');
   const [targetRole, setTargetRole] = useState('sde');
+  const [targetCompany, setTargetCompany] = useState('google');
   const [sessionHistory, setSessionHistory] = useState<InterviewSession[]>([]);
   const [pastInterviews, setPastInterviews] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Camera states
+  const [showCameraPrompt, setShowCameraPrompt] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Proctoring states
+  const [suspiciousActivities, setSuspiciousActivities] = useState<SuspiciousActivity[]>([]);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [isAnswering, setIsAnswering] = useState(false);
+
+  const companies = getAllCompanies();
 
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  // Detect tab switches (potential cheating)
+  useEffect(() => {
+    if (!isAnswering) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setTabSwitchCount(prev => prev + 1);
+        setSuspiciousActivities(prev => [...prev, {
+          type: 'tab-switch',
+          timestamp: new Date(),
+          description: 'User switched to another tab or window'
+        }]);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isAnswering]);
+
+  // Detect copy-paste (potential cheating)
+  useEffect(() => {
+    if (!isAnswering) return;
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const pastedText = e.clipboardData?.getData('text');
+      if (pastedText && pastedText.length > 50) {
+        setSuspiciousActivities(prev => [...prev, {
+          type: 'copy-paste',
+          timestamp: new Date(),
+          description: `Large text pasted (${pastedText.length} characters)`
+        }]);
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [isAnswering]);
+
+  // Request camera access
+  const requestCameraAccess = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        } 
+      });
+      setCameraStream(stream);
+      setCameraEnabled(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setShowCameraPrompt(false);
+    } catch (error) {
+      console.error('Failed to access camera:', error);
+      alert('Camera access is required for interview proctoring. Please allow camera access and try again.');
+    }
+  };
+
+  // Stop camera
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+      setCameraEnabled(false);
+    }
+  };
+
+  // Enter fullscreen
+  const enterFullscreen = async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } catch (error) {
+      console.error('Failed to enter fullscreen:', error);
+    }
+  };
+
+  // Exit fullscreen
+  const exitFullscreen = async () => {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      
+      // If user exits fullscreen during interview, log it
+      if (!document.fullscreenElement && interviewStarted && isAnswering) {
+        setSuspiciousActivities(prev => [...prev, {
+          type: 'tab-switch',
+          timestamp: new Date(),
+          description: 'User exited fullscreen mode'
+        }]);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [interviewStarted, isAnswering]);
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  // Analyze answer for AI patterns
+  const analyzeAnswerForAI = (text: string): boolean => {
+    const aiPatterns = [
+      /as an ai/i,
+      /i am an ai/i,
+      /language model/i,
+      /i don't have personal/i,
+      /i cannot (feel|experience)/i,
+      /^(sure|certainly|of course),? here('s| is)/i
+    ];
+    
+    return aiPatterns.some(pattern => pattern.test(text));
+  };
 
   const fetchHistory = async () => {
     try {
@@ -47,9 +197,13 @@ export const Interview: React.FC = () => {
   const handleStartInterview = async () => {
     setLoading(true);
     try {
+      const selectedCompany = getCompanyByCode(targetCompany);
+      
       const result = await interviewService.startInterview({
         jobRole: targetRole,
         interviewType,
+        company: targetCompany,
+        companyName: selectedCompany?.name
       }) as { conversationId: string; question: string };
       
       setCurrentSession({
@@ -61,6 +215,11 @@ export const Interview: React.FC = () => {
         question: result.question,
       }]);
       setInterviewStarted(true);
+      setSuspiciousActivities([]);
+      setTabSwitchCount(0);
+      
+      // Show camera prompt
+      setShowCameraPrompt(true);
     } catch (error) {
       console.error('Failed to start interview:', error);
     } finally {
@@ -68,13 +227,38 @@ export const Interview: React.FC = () => {
     }
   };
 
+  const handleStartAnswering = async () => {
+    // Request camera and fullscreen when user starts typing
+    setIsAnswering(true);
+    
+    if (!cameraEnabled && !showCameraPrompt) {
+      setShowCameraPrompt(true);
+    }
+    
+    if (!isFullscreen) {
+      await enterFullscreen();
+    }
+  };
+
   const handleSubmitAnswer = async () => {
     if (!answer || !currentSession) return;
     setLoading(true);
+    
+    // Check for AI patterns
+    if (analyzeAnswerForAI(answer)) {
+      setSuspiciousActivities(prev => [...prev, {
+        type: 'ai-pattern',
+        timestamp: new Date(),
+        description: 'Answer contains AI-generated text patterns'
+      }]);
+    }
+    
     try {
       const result = await interviewService.submitAnswer({
         conversationId: currentSession.conversationId,
         answer,
+        suspiciousActivities: suspiciousActivities.length,
+        tabSwitches: tabSwitchCount
       }) as { feedback: string; score: number };
       
       const updatedSession = {
@@ -87,6 +271,7 @@ export const Interview: React.FC = () => {
       setCurrentSession(updatedSession);
       setSessionHistory([...sessionHistory, updatedSession]);
       setAnswer('');
+      setIsAnswering(false);
     } catch (error) {
       console.error('Failed to submit answer:', error);
     } finally {
@@ -101,15 +286,105 @@ export const Interview: React.FC = () => {
     });
   };
 
-  const handleEndInterview = () => {
+  const handleEndInterview = async () => {
     setInterviewStarted(false);
     setCurrentSession(null);
     setSessionHistory([]);
+    setIsAnswering(false);
+    setSuspiciousActivities([]);
+    setTabSwitchCount(0);
+    
+    // Stop camera
+    stopCamera();
+    
+    // Exit fullscreen
+    await exitFullscreen();
+    
     fetchHistory();
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#1a1f3a] to-[#0f1629] p-6 relative">
+      {/* Camera Permission Popup */}
+      {showCameraPrompt && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-[#1a1f3a] border-2 border-[#00d4ff] rounded-lg p-8 max-w-md w-full shadow-[0_0_50px_rgba(0,212,255,0.3)]">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#00d4ff] to-[#0ea5e9] rounded-full flex items-center justify-center">
+                <Camera className="w-8 h-8 text-[#0a0e27]" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">Camera Access Required</h3>
+                <p className="text-gray-400 mt-1">For interview proctoring</p>
+              </div>
+            </div>
+            <p className="text-gray-300 mb-6">
+              We need to monitor you during the interview to ensure fairness and prevent cheating. 
+              Your video will be used only for proctoring purposes.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={requestCameraAccess}
+                className="flex-1 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] text-[#0a0e27] font-bold py-3 px-6 rounded-lg transition"
+              >
+                Allow Camera
+              </button>
+              <button
+                onClick={() => {
+                  setShowCameraPrompt(false);
+                  handleEndInterview();
+                }}
+                className="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg text-red-400 transition"
+              >
+                Deny
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Camera Preview (when enabled and answering) */}
+      {cameraEnabled && isAnswering && (
+        <div className="fixed bottom-6 right-6 z-50 w-64 h-48 bg-black rounded-lg overflow-hidden border-2 border-[#00d4ff] shadow-[0_0_30px_rgba(0,212,255,0.3)]">
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            muted
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-2 right-2 flex items-center gap-2 bg-red-500 px-3 py-1 rounded-full">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+            <span className="text-white text-xs font-bold">RECORDING</span>
+          </div>
+          <div className="absolute bottom-2 left-2 text-white text-xs bg-black/50 px-2 py-1 rounded">
+            Proctoring Active
+          </div>
+        </div>
+      )}
+
+      {/* Suspicious Activity Alert */}
+      {suspiciousActivities.length > 0 && interviewStarted && (
+        <div className="fixed top-24 right-6 z-50 max-w-sm">
+          <div className="bg-yellow-500/20 border-2 border-yellow-500 rounded-lg p-4 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-yellow-400 font-bold mb-1">Suspicious Activity Detected</h4>
+                <p className="text-white text-sm mb-2">
+                  {suspiciousActivities.length} suspicious {suspiciousActivities.length === 1 ? 'activity' : 'activities'} detected
+                </p>
+                <ul className="text-xs text-gray-300 space-y-1">
+                  {suspiciousActivities.slice(-3).map((activity, idx) => (
+                    <li key={idx}>• {activity.description}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e27]/95 backdrop-blur-md border-b border-[#00d4ff]/30 shadow-[0_0_20px_rgba(0,212,255,0.1)]">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -118,8 +393,20 @@ export const Interview: React.FC = () => {
               <Brain className="w-6 h-6 text-[#0a0e27]" />
             </div>
             <span className="font-bold text-white text-2xl">Career AI</span>
+            {isFullscreen && (
+              <span className="ml-4 px-3 py-1 bg-green-500/20 border border-green-500 rounded-full text-green-400 text-sm flex items-center gap-2">
+                <Monitor className="w-4 h-4" />
+                Fullscreen Mode
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3">
+            {cameraEnabled && (
+              <span className="px-3 py-1 bg-red-500/20 border border-red-500 rounded-full text-red-400 text-sm flex items-center gap-2">
+                <Camera className="w-4 h-4" />
+                Camera Active
+              </span>
+            )}
             <button
               onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 px-4 py-2 bg-[#1a1f3a] hover:bg-[#1a1f3a]/80 border border-[#00d4ff]/30 rounded-lg text-white transition hover-glow-cyan"
@@ -170,6 +457,27 @@ export const Interview: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
+                  <div>
+                    <label className="block text-base font-medium text-gray-300 mb-2">Target Company</label>
+                    <select
+                      value={targetCompany}
+                      onChange={(e) => setTargetCompany(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg text-white text-base focus:outline-none focus:ring-2 focus:ring-[#00d4ff] hover-glow-cyan"
+                      aria-label="Select target company"
+                    >
+                      {companies.map((company) => (
+                        <option key={company.code} value={company.code}>
+                          {company.name}
+                        </option>
+                      ))}
+                    </select>
+                    {targetCompany && (
+                      <p className="mt-2 text-sm text-gray-400">
+                        Focus: {getCompanyByCode(targetCompany)?.focus.join(', ')}
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-base font-medium text-gray-300 mb-2">Interview Type</label>
                     <select 
@@ -302,10 +610,22 @@ export const Interview: React.FC = () => {
                     <textarea
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
+                      onFocus={handleStartAnswering}
                       placeholder="Type your answer here... Be clear and detailed."
                       rows={8}
                       className="w-full bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-4 py-3 text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00d4ff] resize-none"
                     />
+                    {isAnswering && (
+                      <div className="mt-2 flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-red-400">Interview in progress - Your activity is being monitored</span>
+                      </div>
+                    )}
+                    {tabSwitchCount > 0 && (
+                      <div className="mt-2 text-sm text-yellow-400">
+                        ⚠️ Tab switches detected: {tabSwitchCount}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-3">
@@ -371,7 +691,6 @@ export const Interview: React.FC = () => {
               </h3>
               <div className="flex items-center gap-4">
                 <div className="flex-1 bg-[#0f1629] rounded-full h-3 border border-[#00d4ff]/20">
-                  {/* eslint-disable-next-line */}
                   <div 
                     className="bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] h-3 rounded-full transition-all glow-cyan"
                     style={{ width: `${Math.round((sessionHistory.length / 5) * 100)}%` }}

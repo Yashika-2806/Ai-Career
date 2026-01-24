@@ -12,7 +12,7 @@ export const interviewController = {
    */
   startInterview: async (req: AuthRequest, res: Response) => {
     try {
-      const { jobRole, interviewType } = req.body; // 'technical' or 'hr'
+      const { jobRole, interviewType, company, companyName } = req.body; // 'technical' or 'hr'
 
       const conversation = new AIConversation({
         userId: req.userId,
@@ -21,19 +21,21 @@ export const interviewController = {
         metadata: {
           jobRole,
           interviewType,
+          company,
+          companyName,
         },
       });
 
       await conversation.save();
 
       // Generate first question
-      const backgroundContext = `College Student applying for ${jobRole}`;
+      const backgroundContext = `College Student applying for ${jobRole}${companyName ? ` at ${companyName}` : ''}`;
       let prompt = '';
 
       if (interviewType === 'technical') {
-        prompt = INTERVIEW_PROMPTS.generateTechnicalQuestion(backgroundContext, jobRole);
+        prompt = INTERVIEW_PROMPTS.generateTechnicalQuestion(backgroundContext, jobRole, company, companyName);
       } else {
-        prompt = INTERVIEW_PROMPTS.generateHRQuestion(jobRole, backgroundContext);
+        prompt = INTERVIEW_PROMPTS.generateHRQuestion(jobRole, backgroundContext, company, companyName);
       }
 
       const response = await aiService.sendMessage(prompt, `interview_${conversation._id}`);
@@ -60,7 +62,7 @@ export const interviewController = {
    */
   submitAnswer: async (req: AuthRequest, res: Response) => {
     try {
-      const { conversationId, answer } = req.body;
+      const { conversationId, answer, suspiciousActivities, tabSwitches } = req.body;
 
       const conversation = await AIConversation.findById(conversationId);
       if (!conversation || conversation.userId.toString() !== req.userId) {
@@ -73,11 +75,18 @@ export const interviewController = {
         timestamp: new Date(),
       });
 
+      // Get the last question
+      const lastQuestion = conversation.messages
+        .filter(m => m.role === 'assistant')
+        .slice(-1)[0]?.content || 'Previous question';
+
       // Generate evaluation
       const prompt = INTERVIEW_PROMPTS.evaluateAnswer(
-        'Previous question',
+        lastQuestion,
         answer,
-        'Optimal approach'
+        'Optimal approach',
+        suspiciousActivities,
+        tabSwitches
       );
 
       const evaluationResponse = await aiService.sendMessage(prompt, `interview_${conversationId}`);
@@ -88,10 +97,23 @@ export const interviewController = {
         timestamp: new Date(),
       });
 
+      // Store proctoring data in metadata
+      if (suspiciousActivities || tabSwitches) {
+        conversation.metadata = {
+          ...conversation.metadata,
+          proctoringData: {
+            suspiciousActivities: suspiciousActivities || 0,
+            tabSwitches: tabSwitches || 0,
+            timestamp: new Date(),
+          },
+        };
+      }
+
       await conversation.save();
 
       res.json({
         feedback: evaluationResponse.response,
+        score: 3.5, // Can be parsed from AI response
         nextQuestion: 'Would you like another question?',
       });
     } catch (error: any) {

@@ -370,30 +370,59 @@ Use formal academic writing with smooth transitions. Start broad and narrow down
 };
 
 export const INTERVIEW_PROMPTS = {
-  generateTechnicalQuestion: (backgroundContext: string, topicFocus: string) => `
-You are a tech interview conductor for top companies.
+  generateTechnicalQuestion: (backgroundContext: string, topicFocus: string, company?: string, companyName?: string) => `
+You are a tech interview conductor for ${companyName || 'top tech companies'}.
+
+${company && companyName ? `IMPORTANT: Generate a question that was actually asked in ${companyName} interviews in recent years (2022-2024). 
+The question should reflect ${companyName}'s interview style and focus areas.` : ''}
 
 Candidate Background:
 ${backgroundContext}
 
 Interview Focus: ${topicFocus}
 
-Generate ONE challenging but fair technical question:
+${company === 'google' ? `Google focuses on: Algorithms, System Design, Problem Solving, Scalability, and Innovation.
+Common question types: Graph algorithms, Tree traversal, Dynamic Programming, System Design at scale.` : ''}
+
+${company === 'amazon' ? `Amazon emphasizes: Leadership Principles, Customer Obsession, Scalability, and Ownership.
+Common question types: Graph problems (islands, connected components), Tree problems, String manipulation, System Design.` : ''}
+
+${company === 'microsoft' ? `Microsoft focuses on: Innovation, Collaboration, Cloud Services, and Problem Solving.
+Common question types: Linked Lists, Arrays, String manipulation, Collaborative systems design.` : ''}
+
+${company === 'meta' ? `Meta (Facebook) emphasizes: Move Fast, Be Bold, Build Social Value, Focus on Impact.
+Common question types: Graph algorithms, Tree problems, Social network design, Ranking algorithms.` : ''}
+
+${company === 'apple' ? `Apple focuses on: Innovation, Excellence, User Experience, and Privacy.
+Common question types: String problems, Stack/Queue, System design with focus on UX and security.` : ''}
+
+${company === 'netflix' ? `Netflix emphasizes: Freedom & Responsibility, Context not Control, Innovation.
+Common question types: Rate limiting, Video streaming, Recommendation systems, High availability design.` : ''}
+
+Generate ONE challenging but fair technical question that reflects ${companyName || 'top company'} interview standards:
 1. Problem statement (clear and concise)
 2. Constraints
 3. Example input/output
 4. Difficulty level
 5. Key concepts tested
 
+${company && companyName ? `Mention that this type of question has been asked in ${companyName} interviews.` : ''}
+
 Follow-up questions should naturally build from the initial problem.
   `,
 
-  evaluateAnswer: (question: string, candidateAnswer: string, optimalApproach: string) => `
+  evaluateAnswer: (question: string, candidateAnswer: string, optimalApproach: string, suspiciousActivities?: number, tabSwitches?: number) => `
 You are a senior engineer conducting interviews.
 
 Question: ${question}
 Candidate's Answer: ${candidateAnswer}
 Optimal Approach: ${optimalApproach}
+
+${suspiciousActivities && suspiciousActivities > 0 ? `
+⚠️ PROCTORING ALERT: ${suspiciousActivities} suspicious activities detected during this answer.
+${tabSwitches && tabSwitches > 0 ? `- ${tabSwitches} tab switches detected (possible external research/cheating)` : ''}
+- This should be factored into the evaluation.
+` : ''}
 
 Provide feedback on:
 1. **Correctness**: Is the solution correct?
@@ -403,26 +432,48 @@ Provide feedback on:
 5. **Coding Quality**: Is code clean and readable?
 6. **Confidence**: Were they confident?
 7. **Problem-solving Approach**: Was there a systematic approach?
+${suspiciousActivities && suspiciousActivities > 0 ? `8. **Integrity Concerns**: Suspicious activity detected - evaluate authenticity of the answer.` : ''}
 
 Rate on scale 1-5 (5 = excellent, 1 = needs improvement).
+${suspiciousActivities && suspiciousActivities > 0 ? `Reduce score by 1-2 points if suspicious activities suggest potential cheating.` : ''}
 Provide actionable feedback for improvement.
   `,
 
-  generateHRQuestion: (jobRole: string, userBackground: string) => `
-You are an HR interview specialist.
+  generateHRQuestion: (jobRole: string, userBackground: string, company?: string, companyName?: string) => `
+You are an HR interview specialist ${companyName ? `for ${companyName}` : ''}.
+
+${company && companyName ? `IMPORTANT: Generate a behavioral question that reflects ${companyName}'s culture and values.` : ''}
 
 Job Role: ${jobRole}
 Candidate Background:
 ${userBackground}
 
+${company === 'google' ? `Google values: Innovation, User Focus, Googleyness, Cognitive Ability.
+Ask about: Dealing with ambiguity, innovation, collaboration, learning from failure.` : ''}
+
+${company === 'amazon' ? `Amazon Leadership Principles: Customer Obsession, Ownership, Invent and Simplify, Bias for Action, Learn and Be Curious.
+Ask STAR questions about: Customer focus, ownership, quick decision-making, innovation.` : ''}
+
+${company === 'microsoft' ? `Microsoft values: Respect, Integrity, Accountability, Innovation, Collaboration.
+Ask about: Teamwork, handling difficult situations, innovation, growth mindset.` : ''}
+
+${company === 'meta' ? `Meta values: Move Fast, Be Bold, Build Social Value, Focus on Impact, Be Open.
+Ask about: Taking risks, impact, learning from failure, collaboration.` : ''}
+
+${company === 'apple' ? `Apple values: Innovation, Excellence, User Experience, Privacy, Collaboration.
+Ask about: User-centric thinking, attention to detail, innovation, collaboration.` : ''}
+
+${company === 'netflix' ? `Netflix Culture: Freedom & Responsibility, Context not Control, Highly Aligned Loosely Coupled.
+Ask about: Independent decision-making, ownership, candor, judgment.` : ''}
+
 Generate an HR question that:
 1. Is role-relevant
 2. Probes soft skills
-3. Assesses cultural fit
+3. Assesses cultural fit ${companyName ? `with ${companyName}` : ''}
 4. Is open-ended
 
 Provide:
-- Question
+- Question ${company && companyName ? `(mention this reflects ${companyName}'s interview style)` : ''}
 - What you're evaluating
 - Good vs poor answer examples
 - Follow-up questions
