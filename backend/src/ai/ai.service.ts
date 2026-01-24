@@ -30,9 +30,9 @@ export class AIService {
       throw new Error('GEMINI_API_KEY is not set');
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash - fast and efficient model
+    // Use gemini-1.5-pro - fast and efficient model
     this.model = this.genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-pro',
       generationConfig: {
         maxOutputTokens: 8192,
         temperature: 0.7,
@@ -63,7 +63,7 @@ export class AIService {
           success: true,
           response: responseText,
           metadata: {
-            model: 'gemini-1.5-flash',
+            model: 'gemini-1.5-pro',
             timestamp: new Date(),
           }
         };
@@ -99,7 +99,7 @@ export class AIService {
         success: true,
         response: responseText,
         metadata: {
-          model: 'gemini-1.5-flash',
+          model: 'gemini-1.5-pro',
           timestamp: new Date(),
         }
       };
@@ -126,7 +126,7 @@ export class AIService {
         success: false,
         error: errorMessage,
         metadata: {
-          model: 'gemini-1.5-flash',
+          model: 'gemini-1.5-pro',
           timestamp: new Date(),
         }
       };
