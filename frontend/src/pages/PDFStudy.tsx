@@ -32,6 +32,8 @@ export const PDFStudy: React.FC = () => {
   const [difficulty, setDifficulty] = useState<Difficulty>('moderate');
   const [userAnswers, setUserAnswers] = useState<{[key: number]: number}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [showFlashcard, setShowFlashcard] = useState(false);
+  const [flashcardFlipped, setFlashcardFlipped] = useState(false);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -443,27 +445,105 @@ export const PDFStudy: React.FC = () => {
                       </h4>
 
                       <div className="space-y-3">
-                        {quizData.questions[currentQuizIndex].options.map((option: string, idx: number) => (
-                          <button
-                            key={idx}
-                            onClick={() => setUserAnswers({...userAnswers, [currentQuizIndex]: idx})}
-                            className={`w-full px-6 py-4 rounded-lg text-left transition border-2 ${
-                              userAnswers[currentQuizIndex] === idx
-                                ? 'bg-purple-600/30 border-purple-400 text-white'
-                                : 'bg-slate-700/30 border-white/10 text-gray-300 hover:bg-slate-600/30 hover:border-purple-400/50'
-                            }`}
-                          >
-                            <span className="font-medium mr-3">{String.fromCharCode(65 + idx)}.</span>
-                            {option}
-                          </button>
-                        ))}
+                        {quizData.questions[currentQuizIndex].options.map((option: string, idx: number) => {
+                          const isAnswered = userAnswers[currentQuizIndex] !== undefined;
+                          const isSelected = userAnswers[currentQuizIndex] === idx;
+                          const isCorrect = quizData.questions[currentQuizIndex].correctAnswer === idx;
+                          const showResult = isAnswered && showFlashcard;
+                          
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => {
+                                if (!isAnswered) {
+                                  setUserAnswers({...userAnswers, [currentQuizIndex]: idx});
+                                  setShowFlashcard(true);
+                                  setFlashcardFlipped(false);
+                                }
+                              }}
+                              disabled={isAnswered}
+                              className={`w-full px-6 py-4 rounded-lg text-left transition border-2 ${
+                                showResult && isCorrect
+                                  ? 'bg-green-600/30 border-green-400 text-white'
+                                  : showResult && isSelected && !isCorrect
+                                  ? 'bg-red-600/30 border-red-400 text-white'
+                                  : isSelected
+                                  ? 'bg-purple-600/30 border-purple-400 text-white'
+                                  : 'bg-slate-700/30 border-white/10 text-gray-300 hover:bg-slate-600/30 hover:border-purple-400/50'
+                              } ${isAnswered ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            >
+                              <span className="font-medium mr-3">{String.fromCharCode(65 + idx)}.</span>
+                              {option}
+                              {showResult && isCorrect && (
+                                <span className="ml-2 text-green-400">✓ Correct</span>
+                              )}
+                              {showResult && isSelected && !isCorrect && (
+                                <span className="ml-2 text-red-400">✗ Wrong</span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
+
+                    {/* Flashcard Answer Reveal */}
+                    {showFlashcard && userAnswers[currentQuizIndex] !== undefined && (
+                      <div className="mb-6 animate-fade-in">
+                        <div 
+                          className="relative w-full h-64 cursor-pointer perspective-1000"
+                          onClick={() => setFlashcardFlipped(!flashcardFlipped)}
+                        >
+                          <div className={`relative w-full h-full transition-transform duration-700 transform-style-3d ${flashcardFlipped ? 'rotate-y-180' : ''}`}>
+                            {/* Front of flashcard */}
+                            <div className="absolute w-full h-full backface-hidden">
+                              <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-8 flex flex-col items-center justify-center shadow-2xl border-2 border-purple-400">
+                                <Sparkles className="w-16 h-16 text-white mb-4 animate-pulse" />
+                                <h3 className="text-3xl font-bold text-white text-center mb-4">
+                                  {userAnswers[currentQuizIndex] === quizData.questions[currentQuizIndex].correctAnswer 
+                                    ? '🎉 Correct!'
+                                    : '📚 Review Answer'}
+                                </h3>
+                                <p className="text-white text-lg text-center mb-4">
+                                  Click to see explanation
+                                </p>
+                                <div className="text-white/70 text-sm">Tap card to flip →</div>
+                              </div>
+                            </div>
+                            
+                            {/* Back of flashcard */}
+                            <div className="absolute w-full h-full backface-hidden rotate-y-180">
+                              <div className="w-full h-full bg-gradient-to-br from-cyan-600 to-blue-600 rounded-xl p-8 shadow-2xl border-2 border-cyan-400 overflow-y-auto">
+                                <div className="flex items-start gap-3 mb-4">
+                                  <CheckCircle className="w-8 h-8 text-white flex-shrink-0" />
+                                  <div>
+                                    <h4 className="text-xl font-bold text-white mb-2">Correct Answer:</h4>
+                                    <p className="text-white text-lg font-semibold mb-4">
+                                      {quizData.questions[currentQuizIndex].options[quizData.questions[currentQuizIndex].correctAnswer]}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-4">
+                                  <h5 className="text-white font-semibold mb-2">💡 Explanation:</h5>
+                                  <p className="text-white/90 leading-relaxed">
+                                    {quizData.questions[currentQuizIndex].explanation}
+                                  </p>
+                                </div>
+                                <div className="text-white/70 text-sm mt-4 text-center">Tap to flip back ←</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex justify-between">
                       <button
                         disabled={currentQuizIndex === 0}
-                        onClick={() => setCurrentQuizIndex(prev => prev - 1)}
+                        onClick={() => {
+                          setCurrentQuizIndex(prev => prev - 1);
+                          setShowFlashcard(false);
+                          setFlashcardFlipped(false);
+                        }}
                         className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition"
                       >
                         ← Previous
@@ -479,8 +559,12 @@ export const PDFStudy: React.FC = () => {
                         </button>
                       ) : (
                         <button
-                          disabled={currentQuizIndex === quizData.questions.length - 1}
-                          onClick={() => setCurrentQuizIndex(prev => prev + 1)}
+                          disabled={currentQuizIndex === quizData.questions.length - 1 || userAnswers[currentQuizIndex] === undefined}
+                          onClick={() => {
+                            setCurrentQuizIndex(prev => prev + 1);
+                            setShowFlashcard(false);
+                            setFlashcardFlipped(false);
+                          }}
                           className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition"
                         >
                           Next →
