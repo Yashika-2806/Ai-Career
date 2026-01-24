@@ -22,6 +22,9 @@ const PORT = process.env.PORT || 5001;
 // MIDDLEWARE
 // ============================================
 
+// Trust proxy - Required for rate limiting behind nginx
+app.set('trust proxy', 1);
+
 // CRITICAL: CORS must be wide open for debugging
 app.use(cors({
   origin: true, // Allow ALL origins during debugging
