@@ -155,142 +155,303 @@ function findMax(arr) {
     const arr = [64, 34, 25, 12, 22, 11, 90];
     const codeLines = userCode.split('\n');
     
-    // Parse user's code and simulate execution
     try {
-      // Extract variable declarations and initialize them
-      const variables: Record<string, any> = { n: arr.length, arr: [...arr] };
+      // Detect algorithm type from code
+      const code = userCode.toLowerCase();
       
-      // Process each line of code
-      for (let lineIdx = 0; lineIdx < codeLines.length; lineIdx++) {
-        const line = codeLines[lineIdx].trim();
-        
-        // Skip comments and empty lines
-        if (!line || line.startsWith('//') || line.startsWith('function') || line === '}' || line === '{') {
-          continue;
-        }
-        
-        // Variable declarations
-        if (line.includes('let ') || line.includes('const ')) {
-          const match = line.match(/(?:let|const)\s+(\w+)\s*=\s*(.+?)[;,]/);
-          if (match) {
-            const varName = match[1];
-            const varValue = match[2].trim();
+      if (code.includes('bubble')) {
+        // BUBBLE SORT - Complete execution
+        const n = arr.length;
+        for (let i = 0; i < n - 1; i++) {
+          mockSteps.push({
+            line: 3,
+            variables: { i, n },
+            array: [...arr],
+            highlightIndices: [],
+            description: `Starting outer loop pass ${i + 1} of ${n - 1}`
+          });
+          
+          for (let j = 0; j < n - i - 1; j++) {
+            mockSteps.push({
+              line: 4,
+              variables: { i, j, n },
+              array: [...arr],
+              highlightIndices: [],
+              description: `Inner loop: j = ${j}`
+            });
             
-            // Evaluate the value
-            if (varValue.includes('arr.length')) {
-              variables[varName] = arr.length;
-            } else if (varValue.includes('Math.floor')) {
-              const expr = varValue.replace(/(\w+)/g, (m) => variables[m] !== undefined ? variables[m] : m);
-              try {
-                variables[varName] = eval(expr);
-              } catch {
-                variables[varName] = 0;
-              }
-            } else if (!isNaN(Number(varValue))) {
-              variables[varName] = Number(varValue);
+            mockSteps.push({
+              line: 5,
+              variables: { i, j, n },
+              array: [...arr],
+              highlightIndices: [j, j + 1],
+              description: `Comparing arr[${j}] (${arr[j]}) with arr[${j + 1}] (${arr[j + 1]})`
+            });
+            
+            if (arr[j] > arr[j + 1]) {
+              [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+              mockSteps.push({
+                line: 6,
+                variables: { i, j, n },
+                array: [...arr],
+                highlightIndices: [j, j + 1],
+                description: `✅ Swapped! arr[${j}] ⇄ arr[${j + 1}]`
+              });
             } else {
-              variables[varName] = varValue;
-            }
-            
-            mockSteps.push({
-              line: lineIdx + 1,
-              variables: { ...variables },
-              array: [...arr],
-              highlightIndices: [],
-              description: `Initialized ${varName} = ${variables[varName]}`
-            });
-          }
-        }
-        
-        // For loops
-        if (line.includes('for (')) {
-          const match = line.match(/for\s*\(\s*let\s+(\w+)\s*=\s*(\d+)/);
-          if (match) {
-            const loopVar = match[1];
-            variables[loopVar] = Number(match[2]);
-            
-            mockSteps.push({
-              line: lineIdx + 1,
-              variables: { ...variables },
-              array: [...arr],
-              highlightIndices: [],
-              description: `Starting loop with ${loopVar} = ${variables[loopVar]}`
-            });
-          }
-        }
-        
-        // Comparisons
-        if (line.includes('if (') && line.includes('[') && line.includes('>')) {
-          const match = line.match(/arr\[(\w+)\]\s*>\s*arr\[(\w+)\s*\+\s*1\]/);
-          if (match) {
-            const idx1 = match[1];
-            const val1 = variables[idx1] !== undefined ? variables[idx1] : 0;
-            const val2 = val1 + 1;
-            
-            if (val2 < arr.length) {
               mockSteps.push({
-                line: lineIdx + 1,
-                variables: { ...variables },
+                line: 6,
+                variables: { i, j, n },
                 array: [...arr],
-                highlightIndices: [val1, val2],
-                description: `Comparing arr[${val1}] (${arr[val1]}) with arr[${val2}] (${arr[val2]})`
+                highlightIndices: [j, j + 1],
+                description: `No swap needed (already in order)`
               });
             }
           }
+          
+          mockSteps.push({
+            line: 9,
+            variables: { i, n },
+            array: [...arr],
+            highlightIndices: [n - i - 1],
+            description: `✨ Pass ${i + 1} complete! Element at position ${n - i - 1} is now sorted`
+          });
         }
-        
-        // Array swaps
-        if (line.includes('[arr[') && line.includes(']=')) {
-          const match = line.match(/\[arr\[(\w+)\],\s*arr\[(\w+)\s*\+\s*1\]\]\s*=\s*\[arr\[(\w+)\s*\+\s*1\],\s*arr\[(\w+)\]\]/);
-          if (match) {
-            const idx = match[1];
-            const val = variables[idx] !== undefined ? variables[idx] : 0;
+      } else if (code.includes('selection')) {
+        // SELECTION SORT - Complete execution
+        for (let i = 0; i < arr.length - 1; i++) {
+          let minIdx = i;
+          
+          mockSteps.push({
+            line: 2,
+            variables: { i, minIdx },
+            array: [...arr],
+            highlightIndices: [i],
+            description: `Starting pass ${i + 1}, assuming minimum is at index ${i}`
+          });
+          
+          for (let j = i + 1; j < arr.length; j++) {
+            mockSteps.push({
+              line: 4,
+              variables: { i, j, minIdx },
+              array: [...arr],
+              highlightIndices: [minIdx, j],
+              description: `Comparing arr[${j}] (${arr[j]}) with current min arr[${minIdx}] (${arr[minIdx]})`
+            });
             
-            if (val < arr.length - 1) {
-              [arr[val], arr[val + 1]] = [arr[val + 1], arr[val]];
-              
+            if (arr[j] < arr[minIdx]) {
+              minIdx = j;
               mockSteps.push({
-                line: lineIdx + 1,
-                variables: { ...variables },
+                line: 5,
+                variables: { i, j, minIdx },
                 array: [...arr],
-                highlightIndices: [val, val + 1],
-                description: `Swapped! arr[${val}] ⇄ arr[${val + 1}]`
+                highlightIndices: [minIdx],
+                description: `🔍 Found new minimum at index ${minIdx}!`
               });
             }
           }
-        }
-        
-        // While loops
-        if (line.includes('while (')) {
-          const match = line.match(/while\s*\(\s*(\w+)\s*(<|>|<=|>=|===|!==)\s*(\w+)/);
-          if (match) {
-            const var1 = match[1];
-            const operator = match[2];
-            const var2 = match[3];
-            
+          
+          if (minIdx !== i) {
+            [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
             mockSteps.push({
-              line: lineIdx + 1,
-              variables: { ...variables },
+              line: 9,
+              variables: { i, minIdx },
               array: [...arr],
-              highlightIndices: [],
-              description: `While loop: checking ${var1} ${operator} ${var2}`
+              highlightIndices: [i, minIdx],
+              description: `✅ Swapped arr[${i}] with arr[${minIdx}]`
+            });
+          } else {
+            mockSteps.push({
+              line: 9,
+              variables: { i, minIdx },
+              array: [...arr],
+              highlightIndices: [i],
+              description: `Element at index ${i} is already in correct position`
             });
           }
         }
-        
-        // Variable updates (i++, j--, etc.)
-        if (line.match(/^\w+\+\+/) || line.match(/^\w+--/)) {
-          const varName = line.replace(/(\+\+|--|;)/g, '').trim();
-          if (variables[varName] !== undefined) {
-            variables[varName] += line.includes('++') ? 1 : -1;
+      } else if (code.includes('insertion')) {
+        // INSERTION SORT - Complete execution
+        for (let i = 1; i < arr.length; i++) {
+          const key = arr[i];
+          let j = i - 1;
+          
+          mockSteps.push({
+            line: 2,
+            variables: { i, key, j },
+            array: [...arr],
+            highlightIndices: [i],
+            description: `Picking element arr[${i}] = ${key} to insert`
+          });
+          
+          let shifts = 0;
+          while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
             
             mockSteps.push({
-              line: lineIdx + 1,
-              variables: { ...variables },
+              line: 5,
+              variables: { i, key, j },
               array: [...arr],
-              highlightIndices: [],
-              description: `Updated ${varName} = ${variables[varName]}`
+              highlightIndices: [j, j + 1],
+              description: `Shifting arr[${j}] (${arr[j]}) to position ${j + 1}`
             });
+            
+            j--;
+            shifts++;
+          }
+          
+          arr[j + 1] = key;
+          mockSteps.push({
+            line: 8,
+            variables: { i, key, j: j + 1 },
+            array: [...arr],
+            highlightIndices: [j + 1],
+            description: shifts > 0 ? `✅ Inserted ${key} at position ${j + 1} after ${shifts} shifts` : `Element ${key} already in correct position`
+          });
+        }
+      } else if (code.includes('linear')) {
+        // LINEAR SEARCH - Complete execution
+        const target = arr[3]; // Search for 4th element
+        
+        for (let i = 0; i < arr.length; i++) {
+          mockSteps.push({
+            line: 2,
+            variables: { i, target },
+            array: [...arr],
+            highlightIndices: [i],
+            description: `Checking arr[${i}] = ${arr[i]}, looking for ${target}`
+          });
+          
+          if (arr[i] === target) {
+            mockSteps.push({
+              line: 3,
+              variables: { i, target },
+              array: [...arr],
+              highlightIndices: [i],
+              description: `🎯 Found ${target} at index ${i}!`
+            });
+            break;
+          }
+        }
+      } else if (code.includes('binary')) {
+        // BINARY SEARCH - Complete execution
+        const sortedArr = [...arr].sort((a, b) => a - b);
+        arr.length = 0;
+        arr.push(...sortedArr);
+        
+        const target = arr[3];
+        let left = 0;
+        let right = arr.length - 1;
+        let iteration = 0;
+        
+        while (left <= right) {
+          const mid = Math.floor((left + right) / 2);
+          iteration++;
+          
+          mockSteps.push({
+            line: 5,
+            variables: { left, right, mid, target, iteration },
+            array: [...arr],
+            highlightIndices: [left, mid, right],
+            description: `Iteration ${iteration}: Searching in range [${left}, ${right}], checking middle at ${mid}`
+          });
+          
+          mockSteps.push({
+            line: 6,
+            variables: { left, right, mid, target },
+            array: [...arr],
+            highlightIndices: [mid],
+            description: `Comparing arr[${mid}] (${arr[mid]}) with target ${target}`
+          });
+          
+          if (arr[mid] === target) {
+            mockSteps.push({
+              line: 7,
+              variables: { left, right, mid, target },
+              array: [...arr],
+              highlightIndices: [mid],
+              description: `🎯 Found ${target} at index ${mid}!`
+            });
+            break;
+          }
+          
+          if (arr[mid] < target) {
+            left = mid + 1;
+            mockSteps.push({
+              line: 8,
+              variables: { left, right, mid, target },
+              array: [...arr],
+              highlightIndices: [mid],
+              description: `arr[${mid}] < ${target}, searching right half`
+            });
+          } else {
+            right = mid - 1;
+            mockSteps.push({
+              line: 9,
+              variables: { left, right, mid, target },
+              array: [...arr],
+              highlightIndices: [mid],
+              description: `arr[${mid}] > ${target}, searching left half`
+            });
+          }
+        }
+      } else if (code.includes('reverse')) {
+        // REVERSE ARRAY - Complete execution
+        let left = 0;
+        let right = arr.length - 1;
+        
+        while (left < right) {
+          mockSteps.push({
+            line: 3,
+            variables: { left, right },
+            array: [...arr],
+            highlightIndices: [left, right],
+            description: `Swapping arr[${left}] (${arr[left]}) with arr[${right}] (${arr[right]})`
+          });
+          
+          [arr[left], arr[right]] = [arr[right], arr[left]];
+          
+          mockSteps.push({
+            line: 4,
+            variables: { left, right },
+            array: [...arr],
+            highlightIndices: [left, right],
+            description: `✅ Swapped! Moving pointers inward`
+          });
+          
+          left++;
+          right--;
+          
+          mockSteps.push({
+            line: 5,
+            variables: { left, right },
+            array: [...arr],
+            highlightIndices: [left, right],
+            description: `Updated pointers: left = ${left}, right = ${right}`
+          });
+        }
+      } else {
+        // DEFAULT: Try to parse as bubble sort
+        const n = arr.length;
+        for (let i = 0; i < n - 1; i++) {
+          for (let j = 0; j < n - i - 1; j++) {
+            mockSteps.push({
+              line: Math.min(5 + j, codeLines.length),
+              variables: { i, j, n },
+              array: [...arr],
+              highlightIndices: [j, j + 1],
+              description: `Comparing arr[${j}] (${arr[j]}) with arr[${j + 1}] (${arr[j + 1]})`
+            });
+
+            if (arr[j] > arr[j + 1]) {
+              [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+              mockSteps.push({
+                line: Math.min(6 + j, codeLines.length),
+                variables: { i, j, n },
+                array: [...arr],
+                highlightIndices: [j, j + 1],
+                description: `✅ Swapped!`
+              });
+            }
           }
         }
       }
@@ -298,45 +459,14 @@ function findMax(arr) {
       // Add completion step
       mockSteps.push({
         line: -1,
-        variables: { ...variables },
-        array: [...arr],
-        highlightIndices: [],
-        description: 'Execution Complete! ✅'
-      });
-      
-    } catch (error) {
-      console.error('Error parsing code:', error);
-      // Fallback to simple bubble sort simulation
-      for (let i = 0; i < arr.length - 1; i++) {
-        for (let j = 0; j < arr.length - i - 1; j++) {
-          mockSteps.push({
-            line: -1,
-            variables: { i, j },
-            array: [...arr],
-            highlightIndices: [j, j + 1],
-            description: `Comparing elements at positions ${j} and ${j + 1}`
-          });
-
-          if (arr[j] > arr[j + 1]) {
-            [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-            mockSteps.push({
-              line: -1,
-              variables: { i, j },
-              array: [...arr],
-              highlightIndices: [j, j + 1],
-              description: `Swapped elements!`
-            });
-          }
-        }
-      }
-      
-      mockSteps.push({
-        line: -1,
         variables: {},
         array: [...arr],
         highlightIndices: [],
-        description: 'Execution Complete! ✅'
+        description: '🎉 Algorithm Execution Complete! All steps shown.'
       });
+      
+    } catch (error) {
+      console.error('Error during execution:', error);
     }
 
     setSteps(mockSteps);
