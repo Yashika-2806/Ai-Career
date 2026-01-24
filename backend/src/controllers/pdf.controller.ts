@@ -94,53 +94,99 @@ export const pdfController = {
         };
       } else if (mode === 'quiz') {
         // Generate quiz questions
-        console.log(`🔍 Generating ${questionCount} ${difficulty} quiz questions...`);
-        const quizPrompt = `Based on this document, generate ${questionCount} multiple-choice questions at ${difficulty} difficulty level.
+        console.log(`🔍 Generating ${questionCount} ${difficulty} quiz questions from document...`);
+        console.log(`📄 Document text length: ${extractedText.length} characters`);
+        
+        const quizPrompt = `You are an expert educator creating quiz questions for students.
 
-Requirements:
-- ${difficulty === 'easy' ? 'Focus on basic facts and definitions' : difficulty === 'moderate' ? 'Test understanding and application' : 'Require deep analysis and critical thinking'}
-- Each question must have exactly 4 options
-- Only one correct answer
-- Include clear explanation for each answer
+IMPORTANT: Create questions ONLY from the actual content below. DO NOT use generic questions.
 
-Format ONLY as valid JSON array (no markdown, no extra text):
-[{"question": "...", "options": ["Option A", "Option B", "Option C", "Option D"], "correctAnswer": 0, "explanation": "..."}]
+Document Content:
+${extractedText.substring(0, 8000)}
 
-Document:
-${extractedText.substring(0, 6000)}`;
+Task: Generate exactly ${questionCount} multiple-choice questions based on the SPECIFIC information in this document.
+
+Difficulty Level: ${difficulty}
+- ${difficulty === 'easy' ? 'Focus on basic facts, definitions, and key points mentioned in the document' : difficulty === 'moderate' ? 'Test understanding and application of concepts from the document' : 'Require deep analysis and synthesis of information from the document'}
+
+Requirements for EACH question:
+1. Question must reference SPECIFIC information from the document (names, dates, concepts, facts)
+2. All 4 options must be plausible but only ONE is correct based on the document
+3. Wrong options should be related to the topic but clearly incorrect
+4. Include a brief explanation citing the document
+
+Output Format (STRICT JSON, no markdown, no code blocks):
+[
+  {
+    "question": "Specific question from document content?",
+    "options": ["Correct answer from doc", "Plausible wrong option 1", "Plausible wrong option 2", "Plausible wrong option 3"],
+    "correctAnswer": 0,
+    "explanation": "Brief explanation referencing the document"
+  }
+]
+
+Generate ${questionCount} questions NOW:`;
         
         const quizResponse = await aiService.sendMessage(quizPrompt);
-        console.log('✅ Quiz response:', { success: quizResponse.success, hasResponse: !!quizResponse.response, error: quizResponse.error });
+        console.log('✅ Quiz response received:', { 
+          success: quizResponse.success, 
+          responseLength: quizResponse.response?.length || 0,
+          error: quizResponse.error 
+        });
+        
         const quizText = quizResponse.success ? quizResponse.response : '';
         
-        // Parse JSON from response
+        // Parse JSON from response with better error handling
         try {
-          const jsonMatch = quizText.match(/\[[\s\S]*\]/);
+          // Remove markdown code blocks if present
+          let cleanedText = quizText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+          
+          // Extract JSON array
+          const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
           if (jsonMatch) {
             const questions = JSON.parse(jsonMatch[0]);
-            result = { questions };
+            
+            // Validate questions
+            if (Array.isArray(questions) && questions.length > 0) {
+              console.log(`✅ Successfully parsed ${questions.length} questions`);
+              result = { questions };
+            } else {
+              throw new Error('No valid questions in array');
+            }
           } else {
-            // Fallback if JSON parsing fails
-            result = {
-              questions: [
-                {
-                  question: "What is the main topic of this document?",
-                  options: ["Topic A", "Topic B", "Topic C", "Topic D"],
-                  correctAnswer: 0,
-                  explanation: "Based on the document content."
-                }
-              ]
-            };
+            console.error('❌ No JSON array found in AI response');
+            throw new Error('Invalid response format');
           }
         } catch (parseError) {
-          console.error('Quiz JSON parse error:', parseError);
+          console.error('❌ Quiz JSON parse error:', parseError);
+          console.log('Raw AI response (first 500 chars):', quizText.substring(0, 500));
+          
+          // Better fallback: Create questions from extracted text
+          const sentences = extractedText.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(0, 10);
+          const fallbackQuestions = sentences.slice(0, Math.min(questionCount, 3)).map((sentence, idx) => ({
+            question: `According to the document, which statement is correct about the content discussed?`,
+            options: [
+              sentence.trim().substring(0, 100),
+              "This information is not mentioned in the document",
+              "The document discusses a different topic",
+              "The content is not related to this subject"
+            ],
+            correctAnswer: 0,
+            explanation: "This information is directly from the document content."
+          }));
+          
           result = {
-            questions: [
+            questions: fallbackQuestions.length > 0 ? fallbackQuestions : [
               {
-                question: "What is the main topic of this document?",
-                options: ["Topic A", "Topic B", "Topic C", "Topic D"],
+                question: "What information does this document primarily contain?",
+                options: [
+                  "Educational or informational content",
+                  "Random unrelated data",
+                  "Empty pages",
+                  "Encrypted content"
+                ],
                 correctAnswer: 0,
-                explanation: "Based on the document content."
+                explanation: "The document contains specific information that can be studied."
               }
             ]
           };
