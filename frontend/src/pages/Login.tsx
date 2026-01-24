@@ -34,7 +34,7 @@ export const LoginPage: React.FC = () => {
 
     try {
       if (isLogin) {
-        const response = await authService.login({
+        const response: any = await authService.login({
           email: formData.email,
           password: formData.password,
         });
@@ -42,7 +42,7 @@ export const LoginPage: React.FC = () => {
         setUser(response.user);
         navigate('/dashboard');
       } else {
-        const response = await authService.register({
+        const response: any = await authService.register({
           email: formData.email,
           password: formData.password,
           name: formData.name,

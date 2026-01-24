@@ -1,0 +1,10 @@
+# Environment files - DO NOT COMMIT
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Sensitive data
+*.key
+*.pem
+secrets/

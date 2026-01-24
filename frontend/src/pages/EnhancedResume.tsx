@@ -102,7 +102,7 @@ export const EnhancedResume: React.FC = () => {
   const handleSyncProfiles = async () => {
     setSyncing(true);
     try {
-      const response = await resumeService.syncProfiles({
+      const response: any = await resumeService.syncProfiles({
         github: profileInputs.githubUsername,
         leetcode: profileInputs.leetcodeUsername,
         codeforces: profileInputs.codeforcesHandle,

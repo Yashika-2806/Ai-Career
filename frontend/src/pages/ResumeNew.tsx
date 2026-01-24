@@ -26,7 +26,7 @@ interface ProfileInputs {
   codeforcesUrl: string;
   hackerrankUrl: string;
   geeksforgeeksUrl: string;
-  codeche fUrl: string;
+  codechefUrl: string;
   linkedinUrl: string;
 }
 
@@ -59,7 +59,7 @@ export const ResumeNew: React.FC = () => {
 
   const loadExistingResume = async () => {
     try {
-      const data = await resumeService.getVersions();
+      const data: any = await resumeService.getVersions();
       if (data.versions?.length > 0) {
         // Load existing sections from backend if available
         setResumeGenerated(true);
@@ -129,11 +129,11 @@ export const ResumeNew: React.FC = () => {
       };
 
       // Sync profiles
-      const syncResponse = await resumeService.syncProfiles(profiles);
+      const syncResponse: any = await resumeService.syncProfiles(profiles);
       setProfileData(syncResponse.data || {});
 
       // Generate resume and parse into sections
-      const resumeResult = await resumeService.generate();
+      const resumeResult: any = await resumeService.generate();
       parseResumeIntoSections(resumeResult.content, syncResponse.data);
       
       setResumeGenerated(true);
