@@ -327,25 +327,31 @@ export const Resume: React.FC = () => {
       accentColor: '#1a1f3a',
       font: 'sans-serif',
       layout: 'single-column',
-      icon: '🎨'
+      icon: '🎨',
+      headerBg: '#00d4ff',
+      headerText: '#000000'
     },
     classic: {
       name: 'Classic',
-      primaryColor: '#1e3a8a',
+      primaryColor: '#1e40af',
       secondaryColor: '#3b82f6',
-      accentColor: '#f3f4f6',
+      accentColor: '#eff6ff',
       font: 'serif',
       layout: 'two-column',
-      icon: '📋'
+      icon: '📋',
+      headerBg: '#1e40af',
+      headerText: '#ffffff'
     },
     minimal: {
       name: 'Minimal',
       primaryColor: '#000000',
       secondaryColor: '#6b7280',
-      accentColor: '#ffffff',
+      accentColor: '#f9fafb',
       font: 'sans-serif',
       layout: 'single-column',
-      icon: '✨'
+      icon: '✨',
+      headerBg: '#000000',
+      headerText: '#ffffff'
     },
     creative: {
       name: 'Creative',
@@ -354,7 +360,9 @@ export const Resume: React.FC = () => {
       accentColor: '#faf5ff',
       font: 'sans-serif',
       layout: 'two-column',
-      icon: '🎭'
+      icon: '🎭',
+      headerBg: '#7c3aed',
+      headerText: '#ffffff'
     },
     professional: {
       name: 'Professional',
@@ -363,7 +371,42 @@ export const Resume: React.FC = () => {
       accentColor: '#ecfdf5',
       font: 'sans-serif',
       layout: 'single-column',
-      icon: '💼'
+      icon: '💼',
+      headerBg: '#047857',
+      headerText: '#ffffff'
+    },
+    sunset: {
+      name: 'Sunset',
+      primaryColor: '#dc2626',
+      secondaryColor: '#f97316',
+      accentColor: '#fff7ed',
+      font: 'sans-serif',
+      layout: 'single-column',
+      icon: '🌅',
+      headerBg: '#dc2626',
+      headerText: '#ffffff'
+    },
+    ocean: {
+      name: 'Ocean',
+      primaryColor: '#0891b2',
+      secondaryColor: '#06b6d4',
+      accentColor: '#ecfeff',
+      font: 'sans-serif',
+      layout: 'single-column',
+      icon: '🌊',
+      headerBg: '#0891b2',
+      headerText: '#ffffff'
+    },
+    forest: {
+      name: 'Forest',
+      primaryColor: '#15803d',
+      secondaryColor: '#22c55e',
+      accentColor: '#f0fdf4',
+      font: 'sans-serif',
+      layout: 'single-column',
+      icon: '🌲',
+      headerBg: '#15803d',
+      headerText: '#ffffff'
     }
   };
 
@@ -376,35 +419,85 @@ export const Resume: React.FC = () => {
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 15;
       const maxWidth = pageWidth - 2 * margin;
-      let yPosition = margin;
 
       const template = templates[selectedTemplate];
+      
+      // Convert hex to RGB for jsPDF
+      const hexToRgb = (hex: string) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+      };
 
-      // Add profile picture if available
+      // Add colored header background
+      const headerHeight = 50;
+      const headerBg = hexToRgb(template.headerBg);
+      doc.setFillColor(headerBg.r, headerBg.g, headerBg.b);
+      doc.rect(0, 0, pageWidth, headerHeight, 'F');
+      
+      // Add profile picture if available - positioned in top right of header
       if (profilePicture) {
         try {
-          const imgWidth = 30;
-          const imgHeight = 30;
+          const imgWidth = 40;
+          const imgHeight = 40;
           const imgX = pageWidth - margin - imgWidth;
-          doc.addImage(profilePicture, 'JPEG', imgX, yPosition, imgWidth, imgHeight, undefined, 'FAST');
+          const imgY = 5;
+          
+          // Add white circular background for photo
+          doc.setFillColor(255, 255, 255);
+          doc.circle(imgX + imgWidth/2, imgY + imgHeight/2, imgWidth/2 + 1, 'F');
+          
+          // Add image
+          doc.addImage(profilePicture, 'JPEG', imgX, imgY, imgWidth, imgHeight, undefined, 'FAST');
         } catch (error) {
           console.error('Failed to add profile picture:', error);
         }
       }
 
-      doc.setFontSize(10);
+      // Add name in header
+      let yPosition = 20;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(24);
+      const headerText = hexToRgb(template.headerText);
+      doc.setTextColor(headerText.r, headerText.g, headerText.b);
+      doc.text(formData.personalInfo.fullName || 'Your Name', margin, yPosition);
+      
+      yPosition += 10;
+      doc.setFontSize(11);
+      const contactInfo = [
+        formData.personalInfo.email,
+        formData.personalInfo.phone,
+        formData.personalInfo.location
+      ].filter(Boolean).join(' | ');
+      doc.text(contactInfo, margin, yPosition);
+      
+      // Reset to black text for content
+      yPosition = headerHeight + 15;
+      doc.setTextColor(0, 0, 0);
 
       sections.forEach(section => {
-        // Section header
+        // Section header with primary color
         if (yPosition > pageHeight - margin) {
           doc.addPage();
           yPosition = margin;
         }
 
-        doc.setFontSize(12);
+        const primaryColor = hexToRgb(template.primaryColor);
+        doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
+        doc.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
         doc.text(section.title, margin, yPosition);
+        
+        // Add colored underline
+        doc.setDrawColor(primaryColor.r, primaryColor.g, primaryColor.b);
+        doc.setLineWidth(0.5);
+        doc.line(margin, yPosition + 2, margin + 60, yPosition + 2);
+        
         yPosition += 10;
+        doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
 
@@ -426,7 +519,7 @@ export const Resume: React.FC = () => {
           });
         });
 
-        yPosition += 5; // Space between sections
+        yPosition += 8; // Space between sections
       });
 
       const filename = `Resume_${new Date().toISOString().split('T')[0]}.pdf`;
