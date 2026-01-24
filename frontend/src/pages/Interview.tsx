@@ -52,6 +52,11 @@ export const Interview: React.FC = () => {
   const [suspiciousActivities, setSuspiciousActivities] = useState<SuspiciousActivity[]>([]);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [isAnswering, setIsAnswering] = useState(false);
+  const [plagiarismScore, setPlagiarismScore] = useState(0);
+  const [isPlagiarized, setIsPlagiarized] = useState(false);
+  const [typingSpeed, setTypingSpeed] = useState(0);
+  const [lastTypingTime, setLastTypingTime] = useState(Date.now());
+  const [characterCount, setCharacterCount] = useState(0);
 
   const companies = getAllCompanies();
 
@@ -185,6 +190,103 @@ export const Interview: React.FC = () => {
     return aiPatterns.some(pattern => pattern.test(text));
   };
 
+  // Plagiarism detection system
+  const detectPlagiarism = (text: string): number => {
+    let score = 0;
+    
+    // Check for overly formal/perfect grammar (potential copy-paste)
+    const formalPatterns = [
+      /\b(furthermore|moreover|consequently|nevertheless|notwithstanding)\b/gi,
+      /\b(pursuant to|in accordance with|with respect to|in light of)\b/gi,
+      /\b(it is worth noting|it should be noted|it is important to mention)\b/gi
+    ];
+    
+    formalPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) score += matches.length * 10;
+    });
+
+    // Check for code-like perfection in technical answers
+    const technicalPatterns = [
+      /\b(implement|algorithm|complexity|optimization)\b.*\b(as follows|is as follows|would be)\b/i,
+      /\bstep \d+:/gi,
+      /\b(first|second|third|finally),?\s+(we|you)\s+(need to|should|must)/gi
+    ];
+    
+    technicalPatterns.forEach(pattern => {
+      if (pattern.test(text)) score += 15;
+    });
+
+    // Check for unusual vocabulary for typical interview response
+    const unusualWords = [
+      'aforementioned', 'heretofore', 'wherein', 'thereof', 'hereby',
+      'notwithstanding', 'aforestated', 'hereinafter'
+    ];
+    
+    unusualWords.forEach(word => {
+      if (new RegExp(`\\b${word}\\b`, 'i').test(text)) score += 20;
+    });
+
+    // Check typing speed anomalies (if text appears too fast)
+    const timeSinceStart = Date.now() - lastTypingTime;
+    const charsAdded = text.length - characterCount;
+    
+    if (charsAdded > 100 && timeSinceStart < 1000) {
+      // More than 100 chars in less than 1 second = likely paste
+      score += 50;
+    }
+
+    // Check for perfect code blocks (rarely typed by humans in interviews)
+    const codeBlockPattern = /```[\s\S]*?```/g;
+    const codeBlocks = text.match(codeBlockPattern);
+    if (codeBlocks && codeBlocks.length > 0) {
+      score += 30;
+    }
+
+    return Math.min(score, 100);
+  };
+
+  // Handle answer change with plagiarism detection
+  const handleAnswerChange = (text: string) => {
+    setAnswer(text);
+    
+    if (isAnswering && text.length > 50) {
+      const plagScore = detectPlagiarism(text);
+      setPlagiarismScore(plagScore);
+      
+      if (plagScore > 50) {
+        setIsPlagiarized(true);
+        setSuspiciousActivities(prev => [...prev, {
+          type: 'copy-paste',
+          timestamp: new Date(),
+          description: `High plagiarism score detected: ${plagScore}%`
+        }]);
+      }
+
+      // Calculate typing speed
+      const currentTime = Date.now();
+      const timeDiff = (currentTime - lastTypingTime) / 1000; // seconds
+      const charDiff = text.length - characterCount;
+      
+      if (timeDiff > 0 && charDiff > 0) {
+        const speed = charDiff / timeDiff;
+        setTypingSpeed(speed);
+        
+        // Suspiciously fast typing (>10 chars/sec sustained)
+        if (speed > 10 && charDiff > 20) {
+          setSuspiciousActivities(prev => [...prev, {
+            type: 'copy-paste',
+            timestamp: new Date(),
+            description: `Unusually fast typing detected: ${speed.toFixed(1)} chars/sec`
+          }]);
+        }
+      }
+      
+      setLastTypingTime(currentTime);
+      setCharacterCount(text.length);
+    }
+  };
+
   const fetchHistory = async () => {
     try {
       const history = await interviewService.getHistory() as any[];
@@ -230,11 +332,16 @@ export const Interview: React.FC = () => {
   const handleStartAnswering = async () => {
     // Request camera and fullscreen when user starts typing
     setIsAnswering(true);
+    setLastTypingTime(Date.now());
+    setCharacterCount(0);
+    setPlagiarismScore(0);
+    setIsPlagiarized(false);
     
     if (!cameraEnabled && !showCameraPrompt) {
       setShowCameraPrompt(true);
     }
     
+    // Force fullscreen immediately
     if (!isFullscreen) {
       await enterFullscreen();
     }
@@ -258,7 +365,9 @@ export const Interview: React.FC = () => {
         conversationId: currentSession.conversationId,
         answer,
         suspiciousActivities: suspiciousActivities.length,
-        tabSwitches: tabSwitchCount
+        tabSwitches: tabSwitchCount,
+        plagiarismScore: plagiarismScore,
+        typingSpeed: typingSpeed
       }) as { feedback: string; score: number };
       
       const updatedSession = {
@@ -272,6 +381,8 @@ export const Interview: React.FC = () => {
       setSessionHistory([...sessionHistory, updatedSession]);
       setAnswer('');
       setIsAnswering(false);
+      setPlagiarismScore(0);
+      setIsPlagiarized(false);
     } catch (error) {
       console.error('Failed to submit answer:', error);
     } finally {
@@ -609,16 +720,58 @@ export const Interview: React.FC = () => {
                     <label className="block text-base font-medium text-gray-300 mb-2">Your Answer</label>
                     <textarea
                       value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
+                      onChange={(e) => handleAnswerChange(e.target.value)}
                       onFocus={handleStartAnswering}
                       placeholder="Type your answer here... Be clear and detailed."
                       rows={8}
                       className="w-full bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-4 py-3 text-white text-base placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00d4ff] resize-none"
                     />
                     {isAnswering && (
-                      <div className="mt-2 flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-red-400">Interview in progress - Your activity is being monitored</span>
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                          <span className="text-red-400">Interview in progress - Your activity is being monitored</span>
+                        </div>
+                        
+                        {/* Plagiarism Detection Display */}
+                        {answer.length > 50 && (
+                          <div className={`flex items-center justify-between p-3 rounded-lg border ${
+                            plagiarismScore > 70 ? 'bg-red-500/10 border-red-500' :
+                            plagiarismScore > 40 ? 'bg-yellow-500/10 border-yellow-500' :
+                            'bg-green-500/10 border-green-500'
+                          }`}>
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className={`w-5 h-5 ${
+                                plagiarismScore > 70 ? 'text-red-400' :
+                                plagiarismScore > 40 ? 'text-yellow-400' :
+                                'text-green-400'
+                              }`} />
+                              <span className={`text-sm font-medium ${
+                                plagiarismScore > 70 ? 'text-red-400' :
+                                plagiarismScore > 40 ? 'text-yellow-400' :
+                                'text-green-400'
+                              }`}>
+                                {plagiarismScore > 70 ? '⚠️ High Plagiarism Risk' :
+                                 plagiarismScore > 40 ? '⚠️ Moderate Plagiarism Risk' :
+                                 '✓ Original Content'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className={`text-sm ${
+                                plagiarismScore > 70 ? 'text-red-400' :
+                                plagiarismScore > 40 ? 'text-yellow-400' :
+                                'text-green-400'
+                              }`}>
+                                Score: {plagiarismScore}%
+                              </span>
+                              {typingSpeed > 0 && (
+                                <span className="text-sm text-gray-400">
+                                  Speed: {typingSpeed.toFixed(1)} chars/sec
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     {tabSwitchCount > 0 && (
