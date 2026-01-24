@@ -620,7 +620,7 @@ User's Response: ${userApproach}`,
                     value={userCode}
                     onChange={(e) => setUserCode(e.target.value)}
                     placeholder="Paste your algorithm code here or select a template above..."
-                    className="w-full h-40 bg-[#0a0e27] border border-[#00d4ff]/30 rounded p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#00d4ff]"
+                    className="w-full h-40 bg-[#0a0e27] border border-[#00d4ff]/30 rounded p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#00d4ff] overflow-y-auto"
                     spellCheck={false}
                   />
 
