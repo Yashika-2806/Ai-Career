@@ -385,82 +385,222 @@ User's Response: ${userApproach}`,
           <p className="text-[#00d4ff] text-xl">Master data structures and algorithms with AI feedback</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sheets Selector */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Algorithm Visualizer Section - LEFT SIDE */}
           <div className="lg:col-span-1">
-            <div className="bg-[#1a1f3a]/90 backdrop-blur-md border border-[#00d4ff]/30 rounded-lg p-6 sticky top-6 card-glow">
-              <h2 className="text-2xl font-semibold text-white mb-4">DSA Sheets</h2>
-              <div className="space-y-3">
-                {sheets.map((sheet) => (
-                  <button
-                    key={sheet.id}
-                    onClick={() => setSelectedSheet(sheet.id)}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition text-base ${
-                      selectedSheet === sheet.id
-                        ? 'bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] text-[#0a0e27] shadow-lg shadow-[#00d4ff]/50 font-bold'
-                        : 'bg-[#0f1629] text-gray-300 hover:bg-[#1a1f3a] border border-[#00d4ff]/20'
-                    }`}
-                  >
-                    <div className="font-medium">{sheet.name}</div>
-                    <div className="text-sm opacity-75">{sheet.problems} problems</div>
-                  </button>
-                ))}
+            <div className="bg-gradient-to-br from-[#1a1f3a] to-[#0f1629] border-2 border-[#00d4ff] rounded-xl p-6 shadow-[0_0_30px_rgba(0,212,255,0.2)] sticky top-24">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#00d4ff] to-[#0ea5e9] rounded-lg flex items-center justify-center shadow-lg shadow-[#00d4ff]/50">
+                  <Zap className="w-6 h-6 text-[#0a0e27]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Algo Visualizer</h2>
+                  <p className="text-[#00d4ff] text-sm">Step-by-step execution</p>
+                </div>
               </div>
 
-              {/* Filters */}
-              {sheetData && (
-                <div className="mt-6 pt-6 border-t border-[#00d4ff]/20">
-                  <h3 className="text-base font-semibold text-white mb-3">Filters</h3>
+              {/* Code Editor */}
+              <div className="space-y-4">
+                <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Code2 className="w-4 h-4 text-[#00d4ff]" />
+                      Code
+                    </h3>
+                    <select
+                      onChange={(e) => setUserCode(codeTemplates[e.target.value] || '')}
+                      className="bg-[#1a1f3a] border border-[#00d4ff]/30 rounded px-2 py-1 text-white text-xs"
+                    >
+                      <option value="">Template</option>
+                      <option value="bubble-sort">Bubble Sort</option>
+                      <option value="selection-sort">Selection Sort</option>
+                      <option value="insertion-sort">Insertion Sort</option>
+                      <option value="binary-search">Binary Search</option>
+                      <option value="linear-search">Linear Search</option>
+                    </select>
+                  </div>
                   
-                  {/* Difficulty Filter */}
-                  <div className="mb-4">
-                    <label className="text-sm text-gray-400 mb-2 block">Difficulty</label>
-                    <select
-                      value={difficultyFilter}
-                      onChange={(e) => setDifficultyFilter(e.target.value)}
-                      className="w-full bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-base hover-glow-cyan"
-                      aria-label="Filter by difficulty"
-                    >
-                      <option value="all">All Levels</option>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </select>
-                  </div>
+                  <textarea
+                    value={userCode}
+                    onChange={(e) => setUserCode(e.target.value)}
+                    placeholder="Paste code here..."
+                    className="w-full h-32 bg-[#0a0e27] border border-[#00d4ff]/30 rounded p-2 text-white font-mono text-xs resize-none focus:outline-none focus:ring-1 focus:ring-[#00d4ff]"
+                    spellCheck={false}
+                  />
 
-                  {/* Topic Filter */}
-                  <div className="mb-4">
-                    <label className="text-sm text-gray-400 mb-2 block">Topic</label>
-                    <select
-                      value={topicFilter}
-                      onChange={(e) => setTopicFilter(e.target.value)}
-                      className="w-full bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-base hover-glow-cyan"
-                      aria-label="Filter by topic"
-                    >
-                      <option value="all">All Topics</option>
-                      {sheetData?.topics?.map((topic: string) => (
-                        <option key={topic} value={topic}>{topic}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <button
+                    onClick={simulateExecution}
+                    className="w-full mt-3 py-2 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_20px_rgba(0,212,255,0.5)] text-[#0a0e27] font-bold rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Visualize
+                  </button>
+                </div>
 
-                  {/* Solved Filter */}
-                  <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                {/* Visualization */}
+                {visualizerSteps.length > 0 && currentStepData ? (
+                  <>
+                    <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-3">
+                      <h3 className="text-sm font-bold text-white mb-3">Array</h3>
+                      
+                      <div className="flex items-end justify-center gap-1 mb-4 min-h-[100px]">
+                        {currentStepData.array?.map((value: number, index: number) => {
+                          const isHighlighted = currentStepData.highlightIndices?.includes(index);
+                          const height = (value / Math.max(...(currentStepData.array || [1]))) * 80;
+                          
+                          return (
+                            <div key={index} className="flex flex-col items-center gap-1">
+                              <div
+                                className={`w-7 rounded-t transition-all duration-300 flex items-end justify-center pb-1 font-bold text-xs ${
+                                  isHighlighted
+                                    ? 'bg-gradient-to-t from-[#00d4ff] to-[#0ea5e9] shadow-[0_0_10px_rgba(0,212,255,0.8)]'
+                                    : 'bg-gradient-to-t from-purple-500 to-pink-500'
+                                }`}
+                                style={{ height: `${height}px` }}
+                              >
+                                <span className="text-white text-[10px]">{value}</span>
+                              </div>
+                              <div className="text-gray-400 text-[10px]">{index}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Variables */}
+                      <div className="bg-[#0a0e27] rounded p-2 mb-2">
+                        <div className="grid grid-cols-3 gap-1">
+                          {Object.entries(currentStepData.variables).map(([key, value]) => (
+                            <div key={key} className="bg-[#1a1f3a] rounded px-2 py-1 text-center">
+                              <span className="text-gray-400 text-[10px]">{key}: </span>
+                              <span className="text-white font-bold text-xs">{String(value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="bg-gradient-to-r from-[#00d4ff]/10 to-[#0ea5e9]/10 border border-[#00d4ff]/30 rounded p-2">
+                        <p className="text-white text-center text-xs">{currentStepData.description}</p>
+                      </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2 text-xs">
+                        <span className="text-white">
+                          Step <span className="text-[#00d4ff] font-bold">{currentStep + 1}</span>/{visualizerSteps.length}
+                        </span>
+                        <select
+                          value={playSpeed}
+                          onChange={(e) => setPlaySpeed(Number(e.target.value))}
+                          className="bg-[#0a0e27] border border-[#00d4ff]/30 rounded px-2 py-1 text-white text-[10px]"
+                        >
+                          <option value={2000}>0.5x</option>
+                          <option value={1000}>1x</option>
+                          <option value={500}>2x</option>
+                          <option value={250}>4x</option>
+                        </select>
+                      </div>
+
+                      <div className="w-full bg-[#0a0e27] rounded-full h-1.5 mb-3">
+                        <div
+                          className="bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] h-1.5 rounded-full transition-all"
+                          style={{ width: `${((currentStep + 1) / visualizerSteps.length) * 100}%` }}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={handleReset} className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded text-white transition">
+                          <RotateCcw className="w-3 h-3" />
+                        </button>
+                        <button onClick={handlePrev} disabled={currentStep === 0} className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded text-white transition disabled:opacity-30">
+                          <SkipBack className="w-3 h-3" />
+                        </button>
+                        <button onClick={handlePlay} className="p-2 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_15px_rgba(0,212,255,0.6)] rounded text-[#0a0e27] transition">
+                          {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        </button>
+                        <button onClick={handleNext} disabled={currentStep >= visualizerSteps.length - 1} className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded text-white transition disabled:opacity-30">
+                          <SkipForward className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-8 text-center">
+                    <Zap className="w-12 h-12 text-[#00d4ff]/50 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">Paste code to visualize</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content - RIGHT SIDE */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Sheet Selector Dropdown & Filters */}
+            <div className="bg-[#1a1f3a]/90 backdrop-blur-md border border-[#00d4ff]/30 rounded-lg p-4 card-glow">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {/* Sheet Dropdown */}
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">DSA Sheet</label>
+                  <select
+                    value={selectedSheet}
+                    onChange={(e) => setSelectedSheet(e.target.value)}
+                    className="w-full bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-sm hover-glow-cyan font-semibold"
+                  >
+                    {sheets.map((sheet) => (
+                      <option key={sheet.id} value={sheet.id}>
+                        {sheet.name} ({sheet.problems})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Difficulty Filter */}
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Difficulty</label>
+                  <select
+                    value={difficultyFilter}
+                    onChange={(e) => setDifficultyFilter(e.target.value)}
+                    className="w-full bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-sm hover-glow-cyan"
+                  >
+                    <option value="all">All Levels</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </div>
+
+                {/* Topic Filter */}
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Topic</label>
+                  <select
+                    value={topicFilter}
+                    onChange={(e) => setTopicFilter(e.target.value)}
+                    className="w-full bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-sm hover-glow-cyan"
+                  >
+                    <option value="all">All Topics</option>
+                    {sheetData?.topics?.map((topic: string) => (
+                      <option key={topic} value={topic}>{topic}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Solved Filter */}
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer pb-2">
                     <input
                       type="checkbox"
                       checked={showSolvedOnly}
                       onChange={(e) => setShowSolvedOnly(e.target.checked)}
                       className="w-4 h-4 rounded border-white/20 bg-white/5"
                     />
-                    Show solved only
+                    Solved only
                   </label>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
             {/* Stats Card */}
             {sheetData && (
               <div className="bg-[#1a1f3a]/90 backdrop-blur-md border border-[#00d4ff]/30 rounded-lg p-8 card-glow">
@@ -597,202 +737,6 @@ User's Response: ${userApproach}`,
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Algorithm Visualizer Section */}
-          <div className="lg:col-span-3">
-            <div className="bg-gradient-to-br from-[#1a1f3a] to-[#0f1629] border-2 border-[#00d4ff] rounded-xl p-6 shadow-[0_0_30px_rgba(0,212,255,0.2)]">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#00d4ff] to-[#0ea5e9] rounded-xl flex items-center justify-center shadow-lg shadow-[#00d4ff]/50">
-                  <Zap className="w-7 h-7 text-[#0a0e27]" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold text-white">Algorithm Visualizer</h2>
-                  <p className="text-[#00d4ff]">Watch your code execute step-by-step</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Code Editor */}
-                <div className="space-y-4">
-                  <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Code2 className="w-5 h-5 text-[#00d4ff]" />
-                        Your Code
-                      </h3>
-                      <select
-                        onChange={(e) => setUserCode(codeTemplates[e.target.value] || '')}
-                        className="bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-sm"
-                      >
-                        <option value="">Select Template</option>
-                        <option value="bubble-sort">🔵 Bubble Sort</option>
-                        <option value="selection-sort">🎯 Selection Sort</option>
-                        <option value="insertion-sort">📌 Insertion Sort</option>
-                        <option value="binary-search">🔍 Binary Search</option>
-                        <option value="linear-search">➡️ Linear Search</option>
-                      </select>
-                    </div>
-                    
-                    <textarea
-                      value={userCode}
-                      onChange={(e) => setUserCode(e.target.value)}
-                      placeholder="Paste your algorithm code here..."
-                      className="w-full h-[200px] bg-[#0a0e27] border border-[#00d4ff]/30 rounded-lg p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#00d4ff]"
-                      spellCheck={false}
-                    />
-
-                    <button
-                      onClick={simulateExecution}
-                      className="w-full mt-3 py-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] text-[#0a0e27] font-bold rounded-lg transition flex items-center justify-center gap-2"
-                    >
-                      <Zap className="w-5 h-5" />
-                      Visualize Algorithm
-                    </button>
-                  </div>
-
-                  {/* Line Execution */}
-                  {visualizerSteps.length > 0 && (
-                    <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
-                      <h3 className="text-sm font-bold text-white mb-3">Code Execution</h3>
-                      <div className="bg-[#0a0e27] rounded-lg p-3 font-mono text-xs overflow-auto max-h-[150px]">
-                        {codeLines.map((line, index) => (
-                          <div
-                            key={index}
-                            className={`py-1 px-2 transition-all rounded ${
-                              currentStepData?.line === index + 1
-                                ? 'bg-gradient-to-r from-[#00d4ff]/30 to-[#0ea5e9]/30 border-l-4 border-[#00d4ff] text-white font-bold'
-                                : 'text-gray-400'
-                            }`}
-                          >
-                            <span className="text-gray-600 mr-2">{String(index + 1).padStart(2, '0')}</span>
-                            {line || ' '}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Visualization */}
-                <div className="space-y-4">
-                  {visualizerSteps.length > 0 && currentStepData ? (
-                    <>
-                      <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
-                        <h3 className="text-lg font-bold text-white mb-4">Array Visualization</h3>
-                        
-                        <div className="flex items-end justify-center gap-2 mb-6 min-h-[150px]">
-                          {currentStepData.array?.map((value: number, index: number) => {
-                            const isHighlighted = currentStepData.highlightIndices?.includes(index);
-                            const height = (value / Math.max(...(currentStepData.array || [1]))) * 120;
-                            
-                            return (
-                              <div key={index} className="flex flex-col items-center gap-1">
-                                <div
-                                  className={`w-10 rounded-t-lg transition-all duration-300 flex items-end justify-center pb-1 font-bold text-xs ${
-                                    isHighlighted
-                                      ? 'bg-gradient-to-t from-[#00d4ff] to-[#0ea5e9] shadow-[0_0_15px_rgba(0,212,255,0.8)] scale-110'
-                                      : 'bg-gradient-to-t from-purple-500 to-pink-500'
-                                  }`}
-                                  style={{ height: `${height}px` }}
-                                >
-                                  <span className="text-white">{value}</span>
-                                </div>
-                                <div className="text-gray-400 text-xs">[{index}]</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Variables */}
-                        <div className="bg-[#0a0e27] rounded-lg p-3 mb-3">
-                          <h4 className="text-xs font-semibold text-[#00d4ff] mb-2">Variables</h4>
-                          <div className="grid grid-cols-3 gap-2">
-                            {Object.entries(currentStepData.variables).map(([key, value]) => (
-                              <div key={key} className="bg-[#1a1f3a] rounded px-2 py-1">
-                                <span className="text-gray-400 text-xs">{key}: </span>
-                                <span className="text-white font-bold text-xs">{String(value)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        <div className="bg-gradient-to-r from-[#00d4ff]/10 to-[#0ea5e9]/10 border border-[#00d4ff]/30 rounded-lg p-3">
-                          <p className="text-white text-center text-sm font-medium">{currentStepData.description}</p>
-                        </div>
-                      </div>
-
-                      {/* Controls */}
-                      <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-white text-sm">
-                            Step <span className="text-[#00d4ff] font-bold">{currentStep + 1}</span> / {visualizerSteps.length}
-                          </div>
-                          <select
-                            value={playSpeed}
-                            onChange={(e) => setPlaySpeed(Number(e.target.value))}
-                            className="bg-[#0a0e27] border border-[#00d4ff]/30 rounded px-2 py-1 text-white text-xs"
-                          >
-                            <option value={2000}>0.5x</option>
-                            <option value={1000}>1x</option>
-                            <option value={500}>2x</option>
-                            <option value={250}>4x</option>
-                          </select>
-                        </div>
-
-                        <div className="w-full bg-[#0a0e27] rounded-full h-2 mb-3">
-                          <div
-                            className="bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] h-2 rounded-full transition-all"
-                            style={{ width: `${((currentStep + 1) / visualizerSteps.length) * 100}%` }}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={handleReset}
-                            className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg text-white transition"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </button>
-                          
-                          <button
-                            onClick={handlePrev}
-                            disabled={currentStep === 0}
-                            className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg text-white transition disabled:opacity-30"
-                          >
-                            <SkipBack className="w-4 h-4" />
-                          </button>
-                          
-                          <button
-                            onClick={handlePlay}
-                            className="p-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_20px_rgba(0,212,255,0.6)] rounded-lg text-[#0a0e27] transition"
-                          >
-                            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                          </button>
-                          
-                          <button
-                            onClick={handleNext}
-                            disabled={currentStep >= visualizerSteps.length - 1}
-                            className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg text-white transition disabled:opacity-30"
-                          >
-                            <SkipForward className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-12 text-center">
-                      <Zap className="w-16 h-16 text-[#00d4ff]/50 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-white mb-2">Ready to Visualize!</h3>
-                      <p className="text-gray-400 text-sm">
-                        Paste your code or select a template, then click "Visualize Algorithm"
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </div>
