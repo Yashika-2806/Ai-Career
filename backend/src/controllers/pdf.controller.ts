@@ -15,18 +15,43 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     const pdf = await loadingTask.promise;
     
     let fullText = '';
+    let previousY = -1;
     
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(' ');
-      fullText += pageText + '\n';
+      
+      // Better text extraction with proper spacing
+      const textItems = textContent.items as any[];
+      let pageText = '';
+      
+      for (let j = 0; j < textItems.length; j++) {
+        const item = textItems[j];
+        if (!item.str) continue;
+        
+        // Add newline if Y position changed significantly (new line)
+        if (previousY >= 0 && Math.abs(item.transform[5] - previousY) > 5) {
+          pageText += '\n';
+        } else if (pageText.length > 0 && !pageText.endsWith(' ') && !pageText.endsWith('\n')) {
+          // Add space between words on same line
+          pageText += ' ';
+        }
+        
+        pageText += item.str.trim();
+        previousY = item.transform[5];
+      }
+      
+      fullText += pageText + '\n\n';
     }
     
+    // Clean up multiple spaces and newlines
+    fullText = fullText.replace(/ +/g, ' ').replace(/\n\n+/g, '\n\n').trim();
+    
+    console.log(`✅ Extracted ${fullText.length} characters from ${pdf.numPages} pages`);
     return fullText;
-  } catch (error) {
-    console.error('PDF text extraction error:', error);
-    throw new Error('Failed to extract text from PDF');
+  } catch (error: any) {
+    console.error('❌ PDF text extraction error:', error.message);
+    throw new Error('Failed to extract text from PDF. File might be corrupted or password-protected.');
   }
 }
 
@@ -73,8 +98,17 @@ export const pdfController = {
       // Extract text from PDF or PPT
       const extractedText = await extractTextFromFile(fileBuffer, mimetype);
 
+      console.log(`📄 Text extraction result: ${extractedText.length} characters`);
+      console.log(`📝 First 200 characters: ${extractedText.substring(0, 200)}...`);
+
       if (!extractedText || extractedText.trim().length === 0) {
-        return res.status(400).json({ error: 'Could not extract text from file' });
+        console.error('❌ Empty text extracted from file');
+        return res.status(400).json({ error: 'Could not extract text from file. The PDF might be image-based or empty.' });
+      }
+      
+      if (extractedText.length < 100) {
+        console.error('⚠️ Very short text extracted, might be insufficient');
+        return res.status(400).json({ error: 'Extracted text is too short. Please upload a document with more content.' });
       }
 
       let result: any = {};
@@ -97,48 +131,35 @@ export const pdfController = {
         console.log(`🔍 Generating ${questionCount} ${difficulty} quiz questions from document...`);
         console.log(`📄 Document text length: ${extractedText.length} characters`);
         
-        // Extract more comprehensive content from document
-        const textPreview = extractedText.substring(0, 12000);
+        // Extract content smartly to avoid token limits
+        const textPreview = extractedText.substring(0, 8000);
         
         // Identify key topics and facts
-        const paragraphs = textPreview.split('\n\n').filter(p => p.trim().length > 50).slice(0, 10);
-        const keyTopics = paragraphs.map(p => p.substring(0, 200).trim()).join('\n\n');
+        const paragraphs = textPreview.split('\n\n').filter(p => p.trim().length > 50).slice(0, 8);
+        const keyTopics = paragraphs.map(p => p.substring(0, 150).trim()).join('\n');
 
-        const quizPrompt = `You are an expert educator creating quiz questions from educational material.
+        const quizPrompt = `Create ${questionCount} quiz questions from this document.
 
-DOCUMENT CONTENT:
+DOCUMENT:
 ${textPreview}
 
-KEY TOPICS FROM DOCUMENT:
+KEY TOPICS:
 ${keyTopics}
 
-CREATE ${questionCount} MULTIPLE CHOICE QUESTIONS with these requirements:
-1. Each question MUST be based on SPECIFIC information from the document above
-2. Questions should test understanding of key concepts, facts, or relationships mentioned
-3. Provide 4 options (A, B, C, D) - one correct and three plausible but incorrect
-4. Difficulty level: ${difficulty}
-5. Each question needs a clear explanation referencing the document
+REQUIREMENTS:
+- Questions MUST use SPECIFIC facts/details from the document
+- Difficulty: ${difficulty}
+- Each question has 4 options with 1 correct answer
+- Include explanation referencing the document
 
-CRITICAL: Return ONLY a valid JSON array. No markdown, no code blocks, no extra text.
+CRITICAL: Return ONLY valid JSON array. No markdown, no code blocks.
 
-Format (return exactly this structure):
-[
-  {
-    "question": "What specific concept does the document explain about [topic]?",
-    "options": [
-      "Correct answer based on document",
-      "Plausible wrong answer",
-      "Another plausible wrong answer",
-      "Third plausible wrong answer"
-    ],
-    "correctAnswer": 0,
-    "explanation": "According to the document, [specific reference to content]. This is mentioned in the section discussing [topic]."
-  }
-]
+FORMAT:
+[{"question":"What does the document state about [topic]?","options":["Correct from doc","Wrong but plausible","Wrong option","Wrong option"],"correctAnswer":0,"explanation":"The document states..."}]
 
-Generate ${questionCount} questions in this exact JSON format:`;
+Generate ${questionCount} questions:`;
 
-        console.log('📝 Sending quiz prompt to AI...');
+        console.log('📝 Sending quiz prompt to AI (prompt length:', quizPrompt.length, 'chars)...');
         
         const quizResponse = await aiService.sendMessage(quizPrompt);
         console.log('✅ Quiz response received:', { 
@@ -270,43 +291,28 @@ Generate ${questionCount} questions in this exact JSON format:`;
         // Generate theory/written questions
         console.log(`🔍 Generating ${questionCount} ${difficulty} theory questions from document...`);
         
-        const textPreview = extractedText.substring(0, 12000);
-        const paragraphs = textPreview.split('\n\n').filter(p => p.trim().length > 50).slice(0, 10);
-        const keyTopics = paragraphs.map(p => p.substring(0, 200).trim()).join('\n\n');
+        const textPreview = extractedText.substring(0, 7000);
+        const paragraphs = textPreview.split('\n\n').filter(p => p.trim().length > 50).slice(0, 6);
+        const keyTopics = paragraphs.map(p => p.substring(0, 150).trim()).join('\n');
 
-        const theoryPrompt = `You are an expert educator creating comprehensive written/theory questions from educational material.
+        const theoryPrompt = `Create ${questionCount} written answer questions from this document.
 
-DOCUMENT CONTENT:
+DOCUMENT:
 ${textPreview}
 
 KEY TOPICS:
 ${keyTopics}
 
-CREATE ${questionCount} THEORY/WRITTEN QUESTIONS with these requirements:
-1. Each question should require a detailed written answer (not multiple choice)
-2. Questions should test deep understanding and ability to explain concepts
-3. Difficulty level: ${difficulty}
-4. Include a comprehensive model answer/solution for each question
-5. Questions should encourage critical thinking and synthesis
+REQUIREMENTS:
+- Questions for detailed written answers (not MCQ)
+- Test deep understanding of concepts
+- Difficulty: ${difficulty}
+- Include model answer with key points
 
-Difficulty guidelines:
-- Easy: Simple explanation or definition questions
-- Moderate: Require analysis, comparison, or application
-- Hard: Demand critical evaluation, synthesis, or complex problem-solving
+Return ONLY valid JSON array:
+[{"question":"Explain...","points":10,"expectedLength":"2-3 paragraphs","solution":"Complete answer...","keyPoints":["Point 1","Point 2"]}]
 
-CRITICAL: Return ONLY a valid JSON array. No markdown, no code blocks.
-
-Format:
-[
-  {
-    "question": "Explain in detail [concept from document]...",
-    "points": 5,
-    "expectedLength": "2-3 paragraphs",
-    "solution": "A comprehensive model answer that fully addresses the question...",
-    "keyPoints": [
-      "First key point to cover",
-      "Second key point to cover",
-      "Third key point to cover"
+Generate ${questionCount} questions:`;
     ]
   }
 ]
