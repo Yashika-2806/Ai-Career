@@ -1,9 +1,9 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import DSAProgress from '../models/DSAProgress';
-import AIService from '../ai/ai.service';
-import { DSA_PROMPTS } from '../ai/prompts';
-import { DSA_SHEETS } from '../data/dsa-sheets';
+import { AuthRequest } from '../middlewares/auth.js';
+import DSAProgress from '../models/DSAProgress.js';
+import AIService from '../ai/ai.service.js';
+import { DSA_PROMPTS } from '../ai/prompts.js';
+import { DSA_SHEETS } from '../data/dsa-sheets.js';
 
 const aiService = new AIService(process.env.GEMINI_API_KEY || '');
 

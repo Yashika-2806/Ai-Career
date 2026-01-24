@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middlewares/auth';
-import { aiLimiter } from '../middlewares/rateLimiter';
-import { interviewController, mentorController } from '../controllers/interview.controller';
+import { authMiddleware } from '../middlewares/auth.js';
+import { aiLimiter } from '../middlewares/rateLimiter.js';
+import { interviewController, mentorController } from '../controllers/interview.controller.js';
 
 const router = Router();
 

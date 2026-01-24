@@ -1,13 +1,13 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import Resume from '../models/Resume';
-import User from '../models/User';
-import AIService from '../ai/ai.service';
-import ResumeService from '../services/resume.service';
-import GitHubService from '../services/github.service';
-import LinkedInService from '../services/linkedin.service';
-import CodeForcesService from '../services/codeforces.service';
-import LeetCodeService from '../services/leetcode.service';
+import { AuthRequest } from '../middlewares/auth.js';
+import Resume from '../models/Resume.js';
+import User from '../models/User.js';
+import AIService from '../ai/ai.service.js';
+import ResumeService from '../services/resume.service.js';
+import GitHubService from '../services/github.service.js';
+import LinkedInService from '../services/linkedin.service.js';
+import CodeForcesService from '../services/codeforces.service.js';
+import LeetCodeService from '../services/leetcode.service.js';
 
 const aiService = new AIService(process.env.GEMINI_API_KEY || '');
 const githubService = new GitHubService();

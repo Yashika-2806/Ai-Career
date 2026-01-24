@@ -4,19 +4,19 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
 // Import routes
-import authRoutes from './routes/auth.routes';
-import dsaRoutes from './routes/dsa.routes';
-import resumeRoutes from './routes/resume.routes';
-import researchRoutes from './routes/research.routes';
-import interviewRoutes from './routes/interview.routes';
-import roadmapRoutes from './routes/roadmap.routes';
-import pdfRoutes from './routes/pdf.routes';
+import authRoutes from './routes/auth.routes.js';
+import dsaRoutes from './routes/dsa.routes.js';
+import resumeRoutes from './routes/resume.routes.js';
+import researchRoutes from './routes/research.routes.js';
+import interviewRoutes from './routes/interview.routes.js';
+import roadmapRoutes from './routes/roadmap.routes.js';
+import pdfRoutes from './routes/pdf.routes.js';
 
 // Load environment variables
 dotenv.config();
 
 const app: Express = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // ============================================
 // MIDDLEWARE
@@ -40,7 +40,7 @@ const connectDB = async () => {
 
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5001,
     });
     console.log('✅ MongoDB connected successfully');
   } catch (error: any) {

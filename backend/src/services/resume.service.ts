@@ -1,5 +1,5 @@
-import AIService from '../ai/ai.service';
-import { RESUME_PROMPTS } from '../ai/prompts';
+import AIService from '../ai/ai.service.js';
+import { RESUME_PROMPTS } from '../ai/prompts.js';
 import GitHubService from './github.service';
 import LinkedInService from './linkedin.service';
 import CodeForcesService from './codeforces.service';

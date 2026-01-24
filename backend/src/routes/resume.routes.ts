@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middlewares/auth';
-import { resumeLimiter } from '../middlewares/rateLimiter';
-import { resumeController } from '../controllers/resume.controller';
+import { authMiddleware } from '../middlewares/auth.js';
+import { resumeLimiter } from '../middlewares/rateLimiter.js';
+import { resumeController } from '../controllers/resume.controller.js';
 
 const router = Router();
 

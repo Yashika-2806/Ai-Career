@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import User from '../models/User';
-import { generateToken } from '../middlewares/auth';
+import { AuthRequest } from '../middlewares/auth.js';
+import User from '../models/User.js';
+import { generateToken } from '../middlewares/auth.js';
 import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 

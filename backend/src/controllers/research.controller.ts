@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import ResearchProject from '../models/Research';
-import AIService from '../ai/ai.service';
-import { RESEARCH_PROMPTS } from '../ai/prompts';
+import { AuthRequest } from '../middlewares/auth.js';
+import ResearchProject from '../models/Research.js';
+import AIService from '../ai/ai.service.js';
+import { RESEARCH_PROMPTS } from '../ai/prompts.js';
 
 const aiService = new AIService(process.env.GEMINI_API_KEY || '');
 

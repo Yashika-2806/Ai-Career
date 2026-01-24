@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import Roadmap from '../models/Roadmap';
-import AIService from '../ai/ai.service';
-import { ROADMAP_PROMPTS } from '../ai/prompts';
+import { AuthRequest } from '../middlewares/auth.js';
+import Roadmap from '../models/Roadmap.js';
+import AIService from '../ai/ai.service.js';
+import { ROADMAP_PROMPTS } from '../ai/prompts.js';
 
 const aiService = new AIService(process.env.GEMINI_API_KEY || '');
 

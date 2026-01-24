@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import { AIService } from '../ai/ai.service';
+import { AuthRequest } from '../middlewares/auth.js';
+import { AIService } from '../ai/ai.service.js';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 // Initialize AI service

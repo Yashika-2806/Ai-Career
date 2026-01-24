@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middlewares/auth';
-import { pdfController } from '../controllers/pdf.controller';
+import { authMiddleware } from '../middlewares/auth.js';
+import { pdfController } from '../controllers/pdf.controller.js';
 import multer from 'multer';
 
 const router = Router();

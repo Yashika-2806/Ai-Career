@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { AuthRequest } from '../middlewares/auth';
-import AIConversation from '../models/AIConversation';
-import AIService from '../ai/ai.service';
-import { INTERVIEW_PROMPTS, GLOBAL_MENTOR_PROMPTS } from '../ai/prompts';
+import { AuthRequest } from '../middlewares/auth.js';
+import AIConversation from '../models/AIConversation.js';
+import AIService from '../ai/ai.service.js';
+import { INTERVIEW_PROMPTS, GLOBAL_MENTOR_PROMPTS } from '../ai/prompts.js';
 
 const aiService = new AIService(process.env.GEMINI_API_KEY || '');
 
