@@ -463,16 +463,21 @@ export const Resume: React.FC = () => {
       doc.setFontSize(24);
       const headerText = hexToRgb(template.headerText);
       doc.setTextColor(headerText.r, headerText.g, headerText.b);
-      doc.text(formData.personalInfo.fullName || 'Your Name', margin, yPosition);
+      
+      // Extract name from first section if available
+      const personalSection = sections.find(s => s.title.includes('SUMMARY') || s.title.includes('PERSONAL'));
+      const nameMatch = personalSection?.items[0]?.content || 'Your Resume';
+      doc.text(nameMatch, margin, yPosition);
       
       yPosition += 10;
       doc.setFontSize(11);
-      const contactInfo = [
-        formData.personalInfo.email,
-        formData.personalInfo.phone,
-        formData.personalInfo.location
-      ].filter(Boolean).join(' | ');
-      doc.text(contactInfo, margin, yPosition);
+      
+      // Extract contact info if available
+      const contactSection = sections.find(s => s.title.includes('CONTACT') || s.title.includes('INFORMATION'));
+      if (contactSection && contactSection.items.length > 0) {
+        const contactInfo = contactSection.items.map(item => item.content).join(' | ');
+        doc.text(contactInfo.substring(0, 80), margin, yPosition);
+      }
       
       // Reset to black text for content
       yPosition = headerHeight + 15;
