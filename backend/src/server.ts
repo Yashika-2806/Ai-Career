@@ -22,19 +22,6 @@ const PORT = process.env.PORT || 5001;
 // MIDDLEWARE
 // ============================================
 
-// CRITICAL: Log every incoming request
-app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📥 INCOMING REQUEST');
-  console.log('Method:', req.method);
-  console.log('Path:', req.path);
-  console.log('Origin:', req.headers.origin);
-  console.log('Content-Type:', req.headers['content-type']);
-  console.log('Body:', JSON.stringify(req.body).substring(0, 200));
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  next();
-});
-
 // CRITICAL: CORS must be wide open for debugging
 app.use(cors({
   origin: true, // Allow ALL origins during debugging
@@ -49,8 +36,23 @@ app.options('*', (req: Request, res: Response) => {
   res.status(200).end();
 });
 
+// Parse body FIRST
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// THEN log requests (after body is parsed)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📥 INCOMING REQUEST');
+  console.log('Method:', req.method);
+  console.log('Path:', req.path);
+  console.log('Origin:', req.headers.origin);
+  console.log('Content-Type:', req.headers['content-type']);
+  const bodyStr = JSON.stringify(req.body);
+  console.log('Body:', bodyStr ? bodyStr.substring(0, 200) : 'empty');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  next();
+});
 
 // ============================================
 // MONGODB CONNECTION (GRACEFUL)
