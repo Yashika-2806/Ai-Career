@@ -16,23 +16,29 @@ export default async function handler(req, res) {
   const apiPath = req.url.replace(/^\/api/, '');
   const targetUrl = `${API_BASE}${apiPath}`;
 
-  console.log('Proxying:', req.method, targetUrl);
+  console.log('Proxying:', req.method, targetUrl, req.body);
 
   try {
-    const fetchOptions = {
-      method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    // Build headers
+    const headers = {
+      'Content-Type': 'application/json',
     };
 
-    // Parse and forward body for POST/PUT/DELETE/PATCH
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
-      if (req.body) {
-        fetchOptions.body = typeof req.body === 'string' 
-          ? req.body 
-          : JSON.stringify(req.body);
-      }
+    // Copy Authorization header if present
+    if (req.headers.authorization) {
+      headers.Authorization = req.headers.authorization;
+    }
+
+    const fetchOptions = {
+      method: req.method,
+      headers: headers,
+    };
+
+    // Add body for POST/PUT/PATCH/DELETE
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      // Vercel already parses req.body as an object
+      fetchOptions.body = JSON.stringify(req.body);
+      console.log('Request body:', fetchOptions.body);
     }
 
     const response = await fetch(targetUrl, fetchOptions);
@@ -45,13 +51,15 @@ export default async function handler(req, res) {
       data = await response.text();
     }
 
+    console.log('Backend response:', response.status, data);
     return res.status(response.status).json(data);
   } catch (error) {
     console.error('Proxy error:', error);
     return res.status(500).json({ 
       success: false,
       error: 'Proxy error', 
-      message: error.message 
+      message: error.message,
+      stack: error.stack
     });
   }
 }
