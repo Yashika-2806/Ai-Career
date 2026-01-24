@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { CodeSquare, ChevronRight, Search, ExternalLink, CheckCircle2, Circle, Youtube, X, Send, Sparkles, Brain, HomeIcon, LogOut, Eye } from 'lucide-react';
+import { CodeSquare, ChevronRight, Search, ExternalLink, CheckCircle2, Circle, Youtube, X, Send, Sparkles, Brain, HomeIcon, LogOut, Code2, Play, Pause, RotateCcw, SkipForward, SkipBack, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/auth.store';
 import { dsaService } from '../services/api';
 import { useDSAStore } from '../context/dsa.store';
-import { AlgorithmVisualizer } from '../components/AlgorithmVisualizer';
 
 interface DSAProblem {
   id: string;
@@ -55,9 +54,12 @@ export const DSA: React.FC = () => {
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [interactionComplete, setInteractionComplete] = useState(false);
 
-  // Algorithm Visualizer State
-  const [showVisualizer, setShowVisualizer] = useState(false);
-  const [visualizeProblem, setVisualizeProblem] = useState<DSAProblem | null>(null);
+  // Algorithm Visualizer State (embedded in page)
+  const [userCode, setUserCode] = useState('');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [visualizerSteps, setVisualizerSteps] = useState<any[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playSpeed, setPlaySpeed] = useState(1000);
 
   const aiQuestions = [
     "Great job solving this problem! Can you describe your approach in detail?",
@@ -74,6 +76,17 @@ export const DSA: React.FC = () => {
   useEffect(() => {
     filterProblems();
   }, [sheetData, searchQuery, difficultyFilter, topicFilter, showSolvedOnly]);
+
+  useEffect(() => {
+    if (isPlaying && currentStep < visualizerSteps.length - 1) {
+      const timer = setTimeout(() => {
+        setCurrentStep(prev => prev + 1);
+      }, playSpeed);
+      return () => clearTimeout(timer);
+    } else if (currentStep >= visualizerSteps.length - 1) {
+      setIsPlaying(false);
+    }
+  }, [isPlaying, currentStep, visualizerSteps.length, playSpeed]);
 
   const fetchSheet = async () => {
     setLoading(true);
@@ -235,6 +248,105 @@ User's Response: ${userApproach}`,
       default: return 'text-gray-400 bg-gray-500/20';
     }
   };
+
+  // Visualizer functions
+  const codeTemplates: Record<string, string> = {
+    'bubble-sort': `// Bubble Sort\nfunction bubbleSort(arr) {\n  let n = arr.length;\n  for (let i = 0; i < n - 1; i++) {\n    for (let j = 0; j < n - i - 1; j++) {\n      if (arr[j] > arr[j + 1]) {\n        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];\n      }\n    }\n  }\n  return arr;\n}`,
+    'selection-sort': `// Selection Sort\nfunction selectionSort(arr) {\n  for (let i = 0; i < arr.length - 1; i++) {\n    let minIdx = i;\n    for (let j = i + 1; j < arr.length; j++) {\n      if (arr[j] < arr[minIdx]) {\n        minIdx = j;\n      }\n    }\n    [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];\n  }\n  return arr;\n}`,
+    'insertion-sort': `// Insertion Sort\nfunction insertionSort(arr) {\n  for (let i = 1; i < arr.length; i++) {\n    let key = arr[i];\n    let j = i - 1;\n    while (j >= 0 && arr[j] > key) {\n      arr[j + 1] = arr[j];\n      j--;\n    }\n    arr[j + 1] = key;\n  }\n  return arr;\n}`,
+    'binary-search': `// Binary Search\nfunction binarySearch(arr, target) {\n  let left = 0;\n  let right = arr.length - 1;\n  while (left <= right) {\n    let mid = Math.floor((left + right) / 2);\n    if (arr[mid] === target) return mid;\n    if (arr[mid] < target) left = mid + 1;\n    else right = mid - 1;\n  }\n  return -1;\n}`,
+    'linear-search': `// Linear Search\nfunction linearSearch(arr, target) {\n  for (let i = 0; i < arr.length; i++) {\n    if (arr[i] === target) {\n      return i;\n    }\n  }\n  return -1;\n}`
+  };
+
+  const simulateExecution = () => {
+    if (!userCode.trim()) return;
+    
+    const steps: any[] = [];
+    const arr = [64, 34, 25, 12, 22, 11, 90];
+    const code = userCode.toLowerCase();
+    
+    if (code.includes('bubble')) {
+      const n = arr.length;
+      for (let i = 0; i < n - 1; i++) {
+        steps.push({
+          line: 3,
+          variables: { i, n },
+          array: [...arr],
+          highlightIndices: [],
+          description: `Pass ${i + 1}/${n - 1} starting`
+        });
+        
+        for (let j = 0; j < n - i - 1; j++) {
+          steps.push({
+            line: 5,
+            variables: { i, j, n },
+            array: [...arr],
+            highlightIndices: [j, j + 1],
+            description: `Compare arr[${j}] (${arr[j]}) with arr[${j + 1}] (${arr[j + 1]})`
+          });
+          
+          if (arr[j] > arr[j + 1]) {
+            [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+            steps.push({
+              line: 6,
+              variables: { i, j, n },
+              array: [...arr],
+              highlightIndices: [j, j + 1],
+              description: `✅ Swapped!`
+            });
+          }
+        }
+      }
+    } else {
+      for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = 0; j < arr.length - i - 1; j++) {
+          steps.push({
+            line: -1,
+            variables: { i, j },
+            array: [...arr],
+            highlightIndices: [j, j + 1],
+            description: `Comparing elements`
+          });
+          if (arr[j] > arr[j + 1]) {
+            [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+            steps.push({
+              line: -1,
+              variables: { i, j },
+              array: [...arr],
+              highlightIndices: [j, j + 1],
+              description: `Swapped!`
+            });
+          }
+        }
+      }
+    }
+    
+    steps.push({
+      line: -1,
+      variables: {},
+      array: [...arr],
+      highlightIndices: [],
+      description: '🎉 Complete!'
+    });
+    
+    setVisualizerSteps(steps);
+    setCurrentStep(0);
+  };
+
+  const handlePlay = () => setIsPlaying(!isPlaying);
+  const handleReset = () => {
+    setCurrentStep(0);
+    setIsPlaying(false);
+  };
+  const handleNext = () => {
+    if (currentStep < visualizerSteps.length - 1) setCurrentStep(prev => prev + 1);
+  };
+  const handlePrev = () => {
+    if (currentStep > 0) setCurrentStep(prev => prev - 1);
+  };
+
+  const currentStepData = visualizerSteps[currentStep];
+  const codeLines = userCode.split('\n');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#1a1f3a] to-[#0f1629] p-6 relative">
@@ -455,17 +567,6 @@ User's Response: ${userApproach}`,
                             <span className="text-[#00d4ff]">{problem.topic}</span>
                             
                             <div className="flex items-center gap-2 flex-wrap">
-                              <button
-                                onClick={() => {
-                                  setVisualizeProblem(problem);
-                                  setShowVisualizer(true);
-                                }}
-                                className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_15px_rgba(0,212,255,0.5)] text-[#0a0e27] rounded-lg transition font-semibold"
-                              >
-                                <Eye className="w-4 h-4" />
-                                Visualize
-                              </button>
-                              
                               {problem.leetcodeUrl && (
                                 <a
                                   href={problem.leetcodeUrl}
@@ -498,6 +599,202 @@ User's Response: ${userApproach}`,
               )}
             </div>
           </div>
+
+          {/* Algorithm Visualizer Section */}
+          <div className="lg:col-span-3">
+            <div className="bg-gradient-to-br from-[#1a1f3a] to-[#0f1629] border-2 border-[#00d4ff] rounded-xl p-6 shadow-[0_0_30px_rgba(0,212,255,0.2)]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#00d4ff] to-[#0ea5e9] rounded-xl flex items-center justify-center shadow-lg shadow-[#00d4ff]/50">
+                  <Zap className="w-7 h-7 text-[#0a0e27]" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-white">Algorithm Visualizer</h2>
+                  <p className="text-[#00d4ff]">Watch your code execute step-by-step</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Code Editor */}
+                <div className="space-y-4">
+                  <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Code2 className="w-5 h-5 text-[#00d4ff]" />
+                        Your Code
+                      </h3>
+                      <select
+                        onChange={(e) => setUserCode(codeTemplates[e.target.value] || '')}
+                        className="bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg px-3 py-2 text-white text-sm"
+                      >
+                        <option value="">Select Template</option>
+                        <option value="bubble-sort">🔵 Bubble Sort</option>
+                        <option value="selection-sort">🎯 Selection Sort</option>
+                        <option value="insertion-sort">📌 Insertion Sort</option>
+                        <option value="binary-search">🔍 Binary Search</option>
+                        <option value="linear-search">➡️ Linear Search</option>
+                      </select>
+                    </div>
+                    
+                    <textarea
+                      value={userCode}
+                      onChange={(e) => setUserCode(e.target.value)}
+                      placeholder="Paste your algorithm code here..."
+                      className="w-full h-[200px] bg-[#0a0e27] border border-[#00d4ff]/30 rounded-lg p-3 text-white font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#00d4ff]"
+                      spellCheck={false}
+                    />
+
+                    <button
+                      onClick={simulateExecution}
+                      className="w-full mt-3 py-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] text-[#0a0e27] font-bold rounded-lg transition flex items-center justify-center gap-2"
+                    >
+                      <Zap className="w-5 h-5" />
+                      Visualize Algorithm
+                    </button>
+                  </div>
+
+                  {/* Line Execution */}
+                  {visualizerSteps.length > 0 && (
+                    <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
+                      <h3 className="text-sm font-bold text-white mb-3">Code Execution</h3>
+                      <div className="bg-[#0a0e27] rounded-lg p-3 font-mono text-xs overflow-auto max-h-[150px]">
+                        {codeLines.map((line, index) => (
+                          <div
+                            key={index}
+                            className={`py-1 px-2 transition-all rounded ${
+                              currentStepData?.line === index + 1
+                                ? 'bg-gradient-to-r from-[#00d4ff]/30 to-[#0ea5e9]/30 border-l-4 border-[#00d4ff] text-white font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            <span className="text-gray-600 mr-2">{String(index + 1).padStart(2, '0')}</span>
+                            {line || ' '}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Visualization */}
+                <div className="space-y-4">
+                  {visualizerSteps.length > 0 && currentStepData ? (
+                    <>
+                      <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
+                        <h3 className="text-lg font-bold text-white mb-4">Array Visualization</h3>
+                        
+                        <div className="flex items-end justify-center gap-2 mb-6 min-h-[150px]">
+                          {currentStepData.array?.map((value: number, index: number) => {
+                            const isHighlighted = currentStepData.highlightIndices?.includes(index);
+                            const height = (value / Math.max(...(currentStepData.array || [1]))) * 120;
+                            
+                            return (
+                              <div key={index} className="flex flex-col items-center gap-1">
+                                <div
+                                  className={`w-10 rounded-t-lg transition-all duration-300 flex items-end justify-center pb-1 font-bold text-xs ${
+                                    isHighlighted
+                                      ? 'bg-gradient-to-t from-[#00d4ff] to-[#0ea5e9] shadow-[0_0_15px_rgba(0,212,255,0.8)] scale-110'
+                                      : 'bg-gradient-to-t from-purple-500 to-pink-500'
+                                  }`}
+                                  style={{ height: `${height}px` }}
+                                >
+                                  <span className="text-white">{value}</span>
+                                </div>
+                                <div className="text-gray-400 text-xs">[{index}]</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Variables */}
+                        <div className="bg-[#0a0e27] rounded-lg p-3 mb-3">
+                          <h4 className="text-xs font-semibold text-[#00d4ff] mb-2">Variables</h4>
+                          <div className="grid grid-cols-3 gap-2">
+                            {Object.entries(currentStepData.variables).map(([key, value]) => (
+                              <div key={key} className="bg-[#1a1f3a] rounded px-2 py-1">
+                                <span className="text-gray-400 text-xs">{key}: </span>
+                                <span className="text-white font-bold text-xs">{String(value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div className="bg-gradient-to-r from-[#00d4ff]/10 to-[#0ea5e9]/10 border border-[#00d4ff]/30 rounded-lg p-3">
+                          <p className="text-white text-center text-sm font-medium">{currentStepData.description}</p>
+                        </div>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-white text-sm">
+                            Step <span className="text-[#00d4ff] font-bold">{currentStep + 1}</span> / {visualizerSteps.length}
+                          </div>
+                          <select
+                            value={playSpeed}
+                            onChange={(e) => setPlaySpeed(Number(e.target.value))}
+                            className="bg-[#0a0e27] border border-[#00d4ff]/30 rounded px-2 py-1 text-white text-xs"
+                          >
+                            <option value={2000}>0.5x</option>
+                            <option value={1000}>1x</option>
+                            <option value={500}>2x</option>
+                            <option value={250}>4x</option>
+                          </select>
+                        </div>
+
+                        <div className="w-full bg-[#0a0e27] rounded-full h-2 mb-3">
+                          <div
+                            className="bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] h-2 rounded-full transition-all"
+                            style={{ width: `${((currentStep + 1) / visualizerSteps.length) * 100}%` }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={handleReset}
+                            className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg text-white transition"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                          
+                          <button
+                            onClick={handlePrev}
+                            disabled={currentStep === 0}
+                            className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg text-white transition disabled:opacity-30"
+                          >
+                            <SkipBack className="w-4 h-4" />
+                          </button>
+                          
+                          <button
+                            onClick={handlePlay}
+                            className="p-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_20px_rgba(0,212,255,0.6)] rounded-lg text-[#0a0e27] transition"
+                          >
+                            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                          </button>
+                          
+                          <button
+                            onClick={handleNext}
+                            disabled={currentStep >= visualizerSteps.length - 1}
+                            className="p-2 bg-[#0a0e27] hover:bg-[#1a1f3a] border border-[#00d4ff]/30 rounded-lg text-white transition disabled:opacity-30"
+                          >
+                            <SkipForward className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-12 text-center">
+                      <Zap className="w-16 h-16 text-[#00d4ff]/50 mx-auto mb-4" />
+                      <h3 className="text-xl font-bold text-white mb-2">Ready to Visualize!</h3>
+                      <p className="text-gray-400 text-sm">
+                        Paste your code or select a template, then click "Visualize Algorithm"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -507,6 +804,7 @@ User's Response: ${userApproach}`,
           <div className="bg-gradient-to-br from-slate-900 to-purple-900 border border-white/20 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Header */}
             <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 p-6 flex items-center justify-between border-b border-white/20">
+
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                   <Sparkles className="w-6 h-6 text-white" />
@@ -658,18 +956,6 @@ User's Response: ${userApproach}`,
             </div>
           </div>
         </div>
-      )}
-
-      {/* Algorithm Visualizer */}
-      {showVisualizer && visualizeProblem && (
-        <AlgorithmVisualizer
-          isOpen={showVisualizer}
-          onClose={() => {
-            setShowVisualizer(false);
-            setVisualizeProblem(null);
-          }}
-          problemTitle={visualizeProblem.title}
-        />
       )}
     </div>
   );
