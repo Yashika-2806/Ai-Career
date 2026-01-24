@@ -366,23 +366,6 @@ Generate a comprehensive Introduction section (500-700 words) that follows this 
    - Briefly describe each section
 
 Use formal academic writing with smooth transitions. Start broad and narrow down to your specific contribution (funnel approach).
-  `,
-
-  generateMethodology: (problemStatement: string, constraints: string) => `
-You are a research methodology expert.
-
-Problem: ${problemStatement}
-Constraints: ${constraints}
-
-Design a research methodology with:
-1. **Hypothesis**: What are you testing?
-2. **Methodology**: Step-by-step approach
-3. **Data Collection**: What data? How much?
-4. **Analysis**: How to evaluate results?
-5. **Timeline**: 3-month research plan
-6. **Resources**: Tools, datasets, hardware needed
-
-Be specific and realistic for college-level research.
   `
 };
 

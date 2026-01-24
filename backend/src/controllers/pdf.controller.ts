@@ -33,8 +33,8 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 // Extract text from PPT/PPTX using officeparser
 async function extractTextFromPPT(buffer: Buffer): Promise<string> {
   try {
-    const text = await officeParser.parseOfficeAsync(buffer);
-    return text;
+    const result = await officeParser.parseOffice(buffer);
+    return result.toString();
   } catch (error) {
     console.error('PPT text extraction error:', error);
     throw new Error('Failed to extract text from PowerPoint file');
