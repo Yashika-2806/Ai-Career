@@ -57,4 +57,8 @@ router.post('/:projectId/introduction', authMiddleware, aiLimiter, (req, res) =>
   researchController.generateIntroduction(req, res);
 });
 
+router.post('/recommend-papers', authMiddleware, aiLimiter, (req, res) => {
+  researchController.recommendPapers(req, res);
+});
+
 export default router;

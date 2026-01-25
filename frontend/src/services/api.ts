@@ -137,6 +137,8 @@ export const researchService = {
     apiClient.post(`/research/${projectId}/abstract`),
   generateIntroduction: (projectId: string) =>
     apiClient.post(`/research/${projectId}/introduction`),
+  recommendPapers: (studentPrompt: string) =>
+    apiClient.post('/research/recommend-papers', { studentPrompt }),
   export: (projectId: string, format: string) =>
     apiClient.get(`/research/${projectId}/export/${format}`),
 };

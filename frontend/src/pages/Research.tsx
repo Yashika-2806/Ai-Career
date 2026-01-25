@@ -34,6 +34,11 @@ export const Research: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showPaperSearch, setShowPaperSearch] = useState(false);
+  const [paperSearchPrompt, setPaperSearchPrompt] = useState('');
+  const [searchingPapers, setSearchingPapers] = useState(false);
+  const [recommendedPapers, setRecommendedPapers] = useState<any>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProjects();
@@ -91,6 +96,45 @@ export const Research: React.FC = () => {
     }
   };
 
+  const handleSearchPapers = async () => {
+    if (!paperSearchPrompt.trim()) return;
+    
+    setSearchingPapers(true);
+    try {
+      const result = await researchService.recommendPapers(paperSearchPrompt);
+      setRecommendedPapers(result);
+    } catch (error) {
+      console.error('Failed to search papers:', error);
+    } finally {
+      setSearchingPapers(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      await researchService.delete(projectId);
+      setProjects(projects.filter(p => p._id !== projectId));
+      setDeleteConfirm(null);
+      if (selectedProject?._id === projectId) {
+        setSelectedProject(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+    }
+  };
+
+  const handleUpdateStatus = async (projectId: string, status: string) => {
+    try {
+      const updated = await researchService.updateStatus(projectId, status) as ResearchProject;
+      setProjects(projects.map(p => p._id === projectId ? updated : p));
+      if (selectedProject?._id === projectId) {
+        setSelectedProject(updated);
+      }
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
   const filteredProjects = projects.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          p.problemStatement.toLowerCase().includes(searchQuery.toLowerCase());
@@ -144,13 +188,22 @@ export const Research: React.FC = () => {
             <h1 className="text-5xl font-bold text-white mb-2">Research Hub</h1>
             <p className="text-[#00d4ff] text-xl">Manage your research projects with AI assistance</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] text-[#0a0e27] font-bold rounded-lg transition text-base btn-primary-glow"
-          >
-            <PlusCircle className="w-5 h-5" />
-            New Project
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowPaperSearch(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] text-white font-bold rounded-lg transition text-base"
+            >
+              <Search className="w-5 h-5" />
+              Find Papers
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#00d4ff] to-[#0ea5e9] hover:shadow-[0_0_30px_rgba(0,212,255,0.6)] text-[#0a0e27] font-bold rounded-lg transition text-base btn-primary-glow"
+            >
+              <PlusCircle className="w-5 h-5" />
+              New Project
+            </button>
+          </div>
         </div>
 
         {/* Stats & Filters */}
@@ -414,6 +467,139 @@ export const Research: React.FC = () => {
                         <li key={idx} className="text-gray-300 text-sm">{work}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Paper Search Modal */}
+        {showPaperSearch && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-slate-900 to-purple-900 border border-white/20 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-8 shadow-2xl">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">AI Paper Recommender</h2>
+                  <p className="text-gray-300">Describe your research topic and get relevant paper recommendations</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPaperSearch(false);
+                    setRecommendedPapers(null);
+                    setPaperSearchPrompt('');
+                  }}
+                  className="text-gray-400 hover:text-white transition text-3xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Search Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Describe your research topic or idea
+                  </label>
+                  <textarea
+                    value={paperSearchPrompt}
+                    onChange={(e) => setPaperSearchPrompt(e.target.value)}
+                    placeholder="Example: I want to research machine learning techniques for early detection of plant diseases using image classification"
+                    rows={4}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 resize-none"
+                  />
+                </div>
+
+                <button
+                  onClick={handleSearchPapers}
+                  disabled={searchingPapers || !paperSearchPrompt.trim()}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
+                >
+                  {searchingPapers ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-5 h-5" />
+                      Find Research Papers
+                    </>
+                  )}
+                </button>
+
+                {/* Recommended Papers Results */}
+                {recommendedPapers && (
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg p-4">
+                      <h3 className="text-xl font-semibold text-white mb-2">{recommendedPapers.topic}</h3>
+                      <p className="text-gray-300 text-sm mb-2">Domain: {recommendedPapers.domain}</p>
+                      {recommendedPapers.keywords && (
+                        <div className="flex flex-wrap gap-2">
+                          {recommendedPapers.keywords.map((keyword: string, idx: number) => (
+                            <span key={idx} className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full">
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-white font-semibold text-lg">
+                      Found {recommendedPapers.papers?.length || 0} Relevant Papers
+                    </div>
+
+                    <div className="space-y-4">
+                      {recommendedPapers.papers && recommendedPapers.papers.map((paper: any, idx: number) => (
+                        <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 transition">
+                          <div className="flex items-start justify-between mb-3">
+                            <h4 className="text-lg font-semibold text-white flex-1">{paper.title}</h4>
+                            <a
+                              href={paper.paperLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-4 text-[#00d4ff] hover:text-[#00b4df] transition"
+                            >
+                              <Share2 className="w-5 h-5" />
+                            </a>
+                          </div>
+
+                          <div className="flex items-center gap-4 mb-3 text-sm text-gray-400">
+                            <span>{paper.authors.slice(0, 3).join(', ')}{paper.authors.length > 3 ? ' et al.' : ''}</span>
+                            <span>•</span>
+                            <span>{paper.year}</span>
+                            {paper.citationCount > 0 && (
+                              <>
+                                <span>•</span>
+                                <span>{paper.citationCount} citations</span>
+                              </>
+                            )}
+                            {paper.venue && paper.venue !== 'Unknown' && (
+                              <>
+                                <span>•</span>
+                                <span className="text-purple-400">{paper.venue}</span>
+                              </>
+                            )}
+                          </div>
+
+                          <div className="mb-3">
+                            <p className="text-gray-300 text-sm leading-relaxed">{paper.summary}</p>
+                          </div>
+
+                          <div className="bg-blue-500/10 border border-blue-500/20 rounded p-3">
+                            <p className="text-sm text-blue-200">
+                              <span className="font-semibold">Why it's relevant:</span> {paper.relevance}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {(!recommendedPapers.papers || recommendedPapers.papers.length === 0) && (
+                      <div className="text-center py-8 text-gray-400">
+                        {recommendedPapers.message || 'No papers found. Try adjusting your search.'}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

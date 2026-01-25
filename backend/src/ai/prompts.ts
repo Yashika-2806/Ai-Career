@@ -366,6 +366,76 @@ Generate a comprehensive Introduction section (500-700 words) that follows this 
    - Briefly describe each section
 
 Use formal academic writing with smooth transitions. Start broad and narrow down to your specific contribution (funnel approach).
+  `,
+
+  /**
+   * Extract academic keywords from student prompt for paper search
+   */
+  extractKeywords: (studentPrompt: string) => `
+You are an expert research assistant specializing in academic keyword extraction.
+
+Student's Research Topic/Idea:
+"${studentPrompt}"
+
+Your task: Extract 5-7 precise academic keywords that will be used to search for relevant research papers.
+
+Requirements:
+1. Keywords should be technical and specific
+2. Use academic terminology (not casual language)
+3. Include synonyms or related terms if applicable
+4. Focus on the core concepts and methodologies
+5. Return ONLY a JSON object, nothing else
+
+Return format (JSON only):
+{
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+  "domain": "Brief research domain (e.g., Machine Learning, Computer Vision, Natural Language Processing)",
+  "topic": "One-line summary of the research topic"
+}
+
+CRITICAL: Return ONLY valid JSON. No markdown, no code blocks, no explanations.
+  `,
+
+  /**
+   * Simplify a research paper abstract for students
+   */
+  simplifyAbstract: (title: string, abstract: string, studentTopic: string) => `
+You are a research paper explainer who makes complex academic content accessible to students.
+
+Paper Title: ${title}
+Original Abstract: ${abstract}
+Student's Topic: ${studentTopic}
+
+Your task: Simplify this abstract into 2-3 clear, easy-to-understand sentences.
+
+Requirements:
+1. Use simple language (avoid jargon where possible)
+2. Focus on what the paper does and why it matters
+3. Make it relevant to a student audience
+4. Keep it concise (2-3 sentences max)
+
+DO NOT start with phrases like "This paper..." or "The abstract discusses..."
+Just directly explain the research in simple terms.
+  `,
+
+  /**
+   * Explain relevance of a paper to student's research topic
+   */
+  explainRelevance: (paperTitle: string, paperAbstract: string, studentTopic: string) => `
+You are a research advisor helping students understand paper relevance.
+
+Paper: ${paperTitle}
+Abstract: ${paperAbstract}
+
+Student's Research Topic: ${studentTopic}
+
+Explain in 1-2 sentences WHY this paper is relevant to the student's research topic.
+Focus on:
+- What concepts/methods connect to their topic
+- How this paper could help their research
+- What they can learn from it
+
+Keep it brief, specific, and actionable.
   `
 };
 
