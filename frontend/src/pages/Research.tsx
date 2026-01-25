@@ -39,6 +39,8 @@ export const Research: React.FC = () => {
   const [searchingPapers, setSearchingPapers] = useState(false);
   const [recommendedPapers, setRecommendedPapers] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [generatingMethodology, setGeneratingMethodology] = useState(false);
+  const [findingRelatedWorks, setFindingRelatedWorks] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -73,6 +75,7 @@ export const Research: React.FC = () => {
   };
 
   const handleGenerateMethodology = async (projectId: string) => {
+    setGeneratingMethodology(true);
     try {
       const result = await researchService.generateMethodology(projectId, '') as { methodology: string };
       setProjects(projects.map(p => p._id === projectId ? { ...p, methodology: result.methodology } : p));
@@ -81,10 +84,14 @@ export const Research: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to generate methodology:', error);
+      alert('Failed to generate methodology. Please try again.');
+    } finally {
+      setGeneratingMethodology(false);
     }
   };
 
   const handleFindRelatedWorks = async (projectId: string) => {
+    setFindingRelatedWorks(true);
     try {
       const result = await researchService.findRelatedWorks(projectId) as { relatedWorks: string[] };
       setProjects(projects.map(p => p._id === projectId ? { ...p, relatedWorks: result.relatedWorks } : p));
@@ -93,6 +100,9 @@ export const Research: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to find related works:', error);
+      alert('Failed to find related works. Please try again.');
+    } finally {
+      setFindingRelatedWorks(false);
     }
   };
 
@@ -430,17 +440,37 @@ export const Research: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <button
                     onClick={() => handleGenerateMethodology(selectedProject._id)}
-                    className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition"
+                    disabled={generatingMethodology}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition"
                   >
-                    <Sparkles className="w-5 h-5" />
-                    Generate Methodology
+                    {generatingMethodology ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Generate Methodology
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => handleFindRelatedWorks(selectedProject._id)}
-                    className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition"
+                    disabled={findingRelatedWorks}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition"
                   >
-                    <GitBranch className="w-5 h-5" />
-                    Find Related Works
+                    {findingRelatedWorks ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <GitBranch className="w-5 h-5" />
+                        Find Related Works
+                      </>
+                    )}
                   </button>
                 </div>
 
