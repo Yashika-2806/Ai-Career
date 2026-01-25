@@ -391,9 +391,18 @@ Return ONLY valid JSON array:
 Generate ${questionCount} theory questions:`;
 
         const theoryResponse = await aiService.sendMessage(theoryPrompt);
+        console.log('✅ Theory response received:', { 
+          success: theoryResponse.success, 
+          responseLength: theoryResponse.response?.length || 0,
+          error: theoryResponse.error,
+          responsePreview: theoryResponse.response?.substring(0, 200)
+        });
+        
         const theoryText = theoryResponse.success ? theoryResponse.response : '';
         
         try {
+          console.log('🔍 Raw theory AI response preview:', theoryText.substring(0, 200));
+          
           let cleanedText = theoryText
             .replace(/```json\s*/gi, '')
             .replace(/```javascript\s*/gi, '')
@@ -414,12 +423,18 @@ Generate ${questionCount} theory questions:`;
           
           if (!jsonString) throw new Error('Could not extract JSON');
           
+          console.log('📋 Extracted theory JSON preview:', jsonString.substring(0, 200));
+          
           jsonString = jsonString
             .replace(/,(\s*[}\]])/g, '$1')
             .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
-            .replace(/:\s*'([^']*)'/g, ':"$1"');
+            .replace(/:\s*'([^']*)'/g, ':"$1"')
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, '')
+            .replace(/\t/g, ' ');
           
           const theoryQuestions = JSON.parse(jsonString);
+          console.log('📊 Parsed theory questions count:', theoryQuestions.length);
           
           const validTheoryQuestions = theoryQuestions.filter((q: any) => 
             q.question && 
@@ -440,7 +455,8 @@ Generate ${questionCount} theory questions:`;
           };
           
         } catch (error) {
-          console.error('❌ Theory question parsing failed');
+          console.error('❌ Theory question parsing failed:', error);
+          console.error('Full theory response:', theoryText.substring(0, 500));
           
           // Fallback theory questions
           const topics = extractedText.split(/[.!?]+/).filter(s => s.trim().length > 40).slice(0, 10);
