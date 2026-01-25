@@ -1,0 +1,18 @@
+{
+  "name": "ai-student-research-backend",
+  "version": "1.0.0",
+  "description": "Backend for AI-powered student research paper recommendation system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": ["ai", "research", "semantic-scholar", "gemini"],
+  "author": "",
+  "license": "ISC"
+}

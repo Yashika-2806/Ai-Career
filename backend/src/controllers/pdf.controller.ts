@@ -131,9 +131,34 @@ export const pdfController = {
       if (mode === 'summary') {
         // Generate a summary
         console.log('🔍 Generating document summary...');
-        const summaryResponse = await aiService.sendMessage(
-          `Provide a comprehensive yet concise summary of this document. Organize it with clear sections and bullet points for better readability:\n\n${extractedText.substring(0, 8000)}`
-        );
+        const summaryPrompt = `Please provide a comprehensive and well-structured summary of this document. Follow this format:
+
+## Executive Summary
+[2-3 sentence overview of the main topic and purpose]
+
+## Key Points
+- [Main point 1]
+- [Main point 2]
+- [Main point 3]
+- [Continue as needed]
+
+## Main Topics Covered
+- [Topic 1 with brief description]
+- [Topic 2 with brief description]
+- [Continue as needed]
+
+## Important Details
+[Any critical facts, dates, names, or data mentioned]
+
+## Conclusion
+[Final thoughts or implications if applicable]
+
+Document content:
+${extractedText.substring(0, 12000)}
+
+Ensure the summary is concise yet comprehensive, using clear language suitable for students. Focus on the most important information.`;
+
+        const summaryResponse = await aiService.sendMessage(summaryPrompt);
         console.log('✅ Summary response:', { success: summaryResponse.success, hasResponse: !!summaryResponse.response, error: summaryResponse.error });
         const summary = summaryResponse.success ? summaryResponse.response : 'Document uploaded successfully.';
         result = {
@@ -152,26 +177,40 @@ export const pdfController = {
         const paragraphs = textPreview.split('\n\n').filter(p => p.trim().length > 50).slice(0, 8);
         const keyTopics = paragraphs.map(p => p.substring(0, 150).trim()).join('\n');
 
-        const quizPrompt = `Create ${questionCount} quiz questions from this document.
+        const quizPrompt = `Create ${questionCount} high-quality quiz questions from this document.
 
-DOCUMENT:
+DOCUMENT CONTENT:
 ${textPreview}
 
-KEY TOPICS:
+KEY TOPICS IDENTIFIED:
 ${keyTopics}
 
-REQUIREMENTS:
-- Questions MUST use SPECIFIC facts/details from the document
-- Difficulty: ${difficulty}
-- Each question has 4 options with 1 correct answer
-- Include explanation referencing the document
+INSTRUCTIONS:
+- Create ${questionCount} multiple-choice questions (4 options each)
+- Difficulty level: ${difficulty}
+- Questions must be based on SPECIFIC facts, concepts, or details from the document
+- Mix question types: factual recall, understanding, application
+- Ensure questions test comprehension, not just memorization
+- Wrong options should be plausible but clearly incorrect
+- Include detailed explanations that reference the document content
 
-CRITICAL: Return ONLY valid JSON array. No markdown, no code blocks.
+QUESTION TYPES TO INCLUDE:
+- Factual questions about key concepts
+- Questions about processes or methods described
+- Questions about important data or statistics
+- Questions about conclusions or implications
 
-FORMAT:
-[{"question":"What does the document state about [topic]?","options":["Correct from doc","Wrong but plausible","Wrong option","Wrong option"],"correctAnswer":0,"explanation":"The document states..."}]
+CRITICAL REQUIREMENTS:
+- Return ONLY a valid JSON array
+- No markdown, no code blocks, no extra text
+- Each question must have exactly 4 options
+- correctAnswer must be 0-3 (index of correct option)
+- explanation must reference specific document content
 
-Generate ${questionCount} questions:`;
+JSON FORMAT:
+[{"question":"Question text here?","options":["Correct answer","Wrong option 1","Wrong option 2","Wrong option 3"],"correctAnswer":0,"explanation":"Explanation referencing document content"}]
+
+Generate exactly ${questionCount} questions:`;
 
         console.log('📝 Sending quiz prompt to AI (prompt length:', quizPrompt.length, 'chars)...');
         console.log('🔑 API Key status:', process.env.GEMINI_API_KEY ? 'SET (length: ' + process.env.GEMINI_API_KEY.length + ')' : 'NOT SET');
