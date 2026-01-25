@@ -584,7 +584,7 @@ User's Response: ${userApproach}`,
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Algorithm Visualizer Section - LEFT SIDE */}
           <div className="lg:col-span-1">
-            <div className="bg-gradient-to-br from-[#1a1f3a] to-[#0f1629] border-2 border-[#00d4ff] rounded-xl p-6 shadow-[0_0_30px_rgba(0,212,255,0.2)] sticky top-24">
+            <div className="bg-gradient-to-br from-[#1a1f3a] to-[#0f1629] border-2 border-[#00d4ff] rounded-xl p-6 shadow-[0_0_30px_rgba(0,212,255,0.2)] sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-gradient-to-br from-[#00d4ff] to-[#0ea5e9] rounded-lg flex items-center justify-center shadow-lg shadow-[#00d4ff]/50">
                   <Zap className="w-6 h-6 text-[#0a0e27]" />
@@ -662,7 +662,7 @@ User's Response: ${userApproach}`,
                     <div className="bg-[#0f1629] border border-[#00d4ff]/30 rounded-lg p-3">
                       <h3 className="text-sm font-bold text-white mb-3">Array Visualization</h3>
                       
-                      <div className="flex items-end justify-center gap-1 mb-4 min-h-[100px]">
+                      <div className="flex items-end justify-center gap-1 mb-4 min-h-[100px] max-h-[200px] overflow-x-auto overflow-y-visible pb-2">
                         {currentStepData.array?.map((value: number, index: number) => {
                           const isHighlighted = currentStepData.highlightIndices?.includes(index);
                           const height = (value / Math.max(...(currentStepData.array || [1]))) * 80;
