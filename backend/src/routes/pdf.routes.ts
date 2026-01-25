@@ -31,10 +31,10 @@ router.post('/analyze', authMiddleware, upload.single('file'), (req, res) => {
   pdfController.analyzePDF(req, res);
 });
 
-// Chat with document
-router.post('/chat', authMiddleware, (req, res) => {
-  pdfController.chatWithPDF(req, res);
-});
+// Chat with document - TEMPORARILY DISABLED
+// router.post('/chat', authMiddleware, (req, res) => {
+//   pdfController.chatWithPDF(req, res);
+// });
 
 // Test API endpoint - check if Gemini is working
 router.get('/test-api', authMiddleware, (req, res) => {

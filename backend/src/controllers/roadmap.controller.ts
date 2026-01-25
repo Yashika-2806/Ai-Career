@@ -47,24 +47,46 @@ export const roadmapController = {
       let roadmap; // Declare roadmap variable here
       
       try {
-        // WHY: AI often wraps JSON in markdown code blocks
-        // Remove markdown code fences if present
+        // Remove markdown code fences and clean response
         let cleanedResponse = response.response || '';
-        cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        cleanedResponse = cleanedResponse
+          .replace(/```json\s*/gi, '')
+          .replace(/```javascript\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
         
-        // Try to find JSON array in the response - be more flexible
-        const jsonMatch = cleanedResponse.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        // Find JSON array - more flexible regex
+        let jsonMatch = cleanedResponse.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        
+        if (!jsonMatch) {
+          // Try finding just the array boundaries
+          const start = cleanedResponse.indexOf('[');
+          const end = cleanedResponse.lastIndexOf(']');
+          if (start !== -1 && end !== -1 && end > start) {
+            jsonMatch = [cleanedResponse.substring(start, end + 1)];
+          }
+        }
+        
         if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
+          // Clean the JSON string
+          let jsonStr = jsonMatch[0]
+            .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, '')
+            .replace(/\t/g, ' ');
+          
+          const parsed = JSON.parse(jsonStr);
           
           // Validate and clean milestones
-          milestones = parsed.map((m: any, index: number) => ({
-            week: m.week || index + 1,
-            title: m.title || `Week ${index + 1}`,
-            description: m.description || 'Focus on learning and practice',
-            resources: Array.isArray(m.resources) ? m.resources.filter((r: string) => r && r.startsWith('http')) : [],
-            completed: false
-          }));
+          milestones = parsed
+            .filter((m: any) => m && typeof m === 'object')
+            .map((m: any, index: number) => ({
+              week: m.week || index + 1,
+              title: m.title || `Week ${index + 1}`,
+              description: m.description || 'Focus on learning and practice',
+              resources: Array.isArray(m.resources) ? m.resources.filter((r: string) => r && typeof r === 'string' && r.startsWith('http')) : [],
+              completed: false
+            }));
           
           console.log(`✅ Generated ${milestones.length} detailed milestones from AI`);
         } else {
