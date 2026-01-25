@@ -126,17 +126,17 @@ export const researchService = {
   updateStatus: (projectId: string, status: string) =>
     apiClient.patch(`/research/${projectId}/status`, { status }),
   summarize: (projectId: string) =>
-    apiClient.post(`/research/${projectId}/summarize`),
+    apiClient.post(`/research/${projectId}/summarize`, {}),
   findRelatedWorks: (projectId: string) =>
-    apiClient.post(`/research/${projectId}/related-works`),
+    apiClient.post(`/research/${projectId}/related-works`, {}),
   generateMethodology: (projectId: string, data: any) =>
     apiClient.post(`/research/${projectId}/methodology`, data),
   generateLiteratureReview: (projectId: string) =>
-    apiClient.post(`/research/${projectId}/literature-review`),
+    apiClient.post(`/research/${projectId}/literature-review`, {}),
   generateAbstract: (projectId: string) =>
-    apiClient.post(`/research/${projectId}/abstract`),
+    apiClient.post(`/research/${projectId}/abstract`, {}),
   generateIntroduction: (projectId: string) =>
-    apiClient.post(`/research/${projectId}/introduction`),
+    apiClient.post(`/research/${projectId}/introduction`, {}),
   recommendPapers: (studentPrompt: string) =>
     apiClient.post('/research/recommend-papers', { studentPrompt }),
   export: (projectId: string, format: string) =>
