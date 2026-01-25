@@ -460,7 +460,7 @@ export const Research: React.FC = () => {
 
         {/* Project Detail Modal */}
         {selectedProject && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-slate-800">
             <div className="bg-gradient-to-br from-[#1a1f3a] to-[#0f1629] border border-[#00d4ff]/30 rounded-2xl max-w-5xl w-full my-8 p-8 shadow-2xl">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">

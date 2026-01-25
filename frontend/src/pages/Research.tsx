@@ -415,7 +415,7 @@ export const Research: React.FC = () => {
                 </button>
               </div>
 
-              <div className="space-y-6 overflow-y-auto flex-1 pr-2" style={{maxHeight: 'calc(90vh - 200px)'}}>
+              <div className="space-y-6 overflow-y-auto flex-1 pr-2 scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-slate-800" style={{maxHeight: 'calc(90vh - 200px)'}}>
                 {/* Problem Statement */}
                 <div className="bg-white/5 border border-white/10 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
@@ -507,7 +507,7 @@ export const Research: React.FC = () => {
         {/* Paper Search Modal */}
         {showPaperSearch && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-slate-900 to-purple-900 border border-white/20 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-8 shadow-2xl">
+            <div className="bg-gradient-to-br from-slate-900 to-purple-900 border border-white/20 rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-slate-800 p-8 shadow-2xl">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h2 className="text-3xl font-bold text-white mb-2">AI Paper Recommender</h2>

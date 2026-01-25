@@ -223,3 +223,51 @@ html {
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }
+
+/* Custom Scrollbar Styles */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.scrollbar-track-slate-800::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.scrollbar-thumb-purple-500::-webkit-scrollbar-thumb {
+  background: #a855f7;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.scrollbar-thumb-purple-500::-webkit-scrollbar-thumb:hover {
+  background: #9333ea;
+}
+
+.scrollbar-thumb-cyan-500::-webkit-scrollbar-thumb {
+  background: #06b6d4;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.scrollbar-thumb-cyan-500::-webkit-scrollbar-thumb:hover {
+  background: #0891b2;
+}
+
+/* Firefox scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-track-slate-800.scrollbar-thumb-purple-500 {
+  scrollbar-color: #a855f7 #1e293b;
+}
+
+.scrollbar-track-slate-800.scrollbar-thumb-cyan-500 {
+  scrollbar-color: #06b6d4 #1e293b;
+}
