@@ -129,8 +129,8 @@ export const researchService = {
     apiClient.post(`/research/${projectId}/summarize`, {}),
   findRelatedWorks: (projectId: string) =>
     apiClient.post(`/research/${projectId}/related-works`, {}),
-  generateMethodology: (projectId: string, data: any) =>
-    apiClient.post(`/research/${projectId}/methodology`, data),
+  generateMethodology: (projectId: string, data?: any) =>
+    apiClient.post(`/research/${projectId}/methodology`, data || {}),
   generateLiteratureReview: (projectId: string) =>
     apiClient.post(`/research/${projectId}/literature-review`, {}),
   generateAbstract: (projectId: string) =>

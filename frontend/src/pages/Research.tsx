@@ -399,8 +399,8 @@ export const Research: React.FC = () => {
         {/* Project Detail Modal */}
         {selectedProject && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-slate-900 to-purple-900 border border-white/20 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 shadow-2xl">
-              <div className="flex items-start justify-between mb-6">
+            <div className="bg-gradient-to-br from-slate-900 to-purple-900 border border-white/20 rounded-2xl max-w-4xl w-full max-h-[90vh] p-8 shadow-2xl flex flex-col">
+              <div className="flex items-start justify-between mb-6 flex-shrink-0">
                 <div>
                   <h2 className="text-3xl font-bold text-white mb-2">{selectedProject.title}</h2>
                   <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedProject.status)}`}>
@@ -409,13 +409,13 @@ export const Research: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setSelectedProject(null)}
-                  className="text-gray-400 hover:text-white transition"
+                  className="text-gray-400 hover:text-white transition text-3xl leading-none"
                 >
                   ×
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-6 overflow-y-auto flex-1 pr-2" style={{maxHeight: 'calc(90vh - 200px)'}}>
                 {/* Problem Statement */}
                 <div className="bg-white/5 border border-white/10 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
