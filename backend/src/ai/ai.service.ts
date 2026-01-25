@@ -197,6 +197,20 @@ export class AIService {
   clearAllHistories(): void {
     this.conversationHistory.clear();
   }
+
+  /**
+   * Get all conversation IDs
+   */
+  getAllConversationIds(): string[] {
+    return Array.from(this.conversationHistory.keys());
+  }
+
+  /**
+   * Get conversation count
+   */
+  getConversationCount(): number {
+    return this.conversationHistory.size;
+  }
 }
 
 export default AIService;

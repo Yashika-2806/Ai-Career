@@ -1,7 +1,16 @@
-import React, { useState, useRef } from 'react';
-import { Upload, FileText, MessageCircle, Brain, Sparkles, X, CheckCircle, XCircle, Home as HomeIcon, LogOut } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, FileText, MessageCircle, Brain, Sparkles, X, CheckCircle, XCircle, Home as HomeIcon, LogOut, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/auth.store';
+import '../styles/pdf-study.css';
+import { 
+  storePDFContext, 
+  retrievePDFContext, 
+  clearPDFContext, 
+  formatFileSize, 
+  validatePDFFile,
+  generateConversationId
+} from '../utils/pdfHelpers';
 
 type StudyMode = 'chat' | 'quiz' | 'theory' | null;
 type Difficulty = 'easy' | 'moderate' | 'hard';
@@ -40,14 +49,43 @@ export const PDFStudy: React.FC = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      if (selectedFile.type === 'application/pdf') {
+      const validation = validatePDFFile(selectedFile);
+      
+      if (validation.valid) {
         setFile(selectedFile);
         setMode(null);
+        // Clear previous context
+        clearPDFContext();
+        setPdfContext('');
+        setChatMessages([]);
+        setQuizData(null);
+        setTheoryQuestions([]);
       } else {
-        alert('Please upload a PDF file');
+        alert(validation.error || 'Invalid file');
       }
     }
   };
+
+  // Load PDF context from session storage on mount
+  useEffect(() => {
+    const { context, metadata } = retrievePDFContext();
+    if (context && metadata) {
+      setPdfContext(context);
+      console.log('✅ Restored PDF context from session:', metadata.fileName);
+    }
+  }, []);
+
+  // Save PDF context to session storage whenever it changes
+  useEffect(() => {
+    if (pdfContext && file) {
+      storePDFContext(pdfContext, {
+        fileName: file.name,
+        fileSize: file.size,
+        textLength: pdfContext.length,
+        uploadedAt: new Date()
+      });
+    }
+  }, [pdfContext, file]);
 
   const handleModeSelect = async (selectedMode: StudyMode) => {
     if (!file) return;
@@ -81,8 +119,12 @@ export const PDFStudy: React.FC = () => {
       
       const data = await response.json();
       
-      setPdfContext(data.pdfText || '');
-      const newConvId = `pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Store PDF context from any mode for chat capability
+      if (data.pdfText || data.extractedText) {
+        setPdfContext(data.pdfText || data.extractedText || '');
+      }
+      
+      const newConvId = generateConversationId('pdf');
       setConversationId(newConvId);
       setChatMessages([{
         role: 'assistant',
@@ -123,18 +165,34 @@ export const PDFStudy: React.FC = () => {
       
       const data = await response.json();
       
-      if (mode === 'quiz') {
-        setQuizData({ questions: data.questions || [] });
-        setCurrentQuizIndex(0);
-        setUserAnswers({});
-        setQuizSubmitted(false);
-      } else if (mode === 'theory') {
-        setTheoryQuestions(data.theoryQuestions || []);
-        setShowTheorySolutions({});
+      // Store PDF context for potential chat mode use
+      if (data.pdfText || data.extractedText) {
+        setPdfContext(data.pdfText || data.extractedText || '');
+        const newConvId = generateConversationId('pdf');
+        setConversationId(newConvId);
       }
-    } catch (error) {
+      
+      if (mode === 'quiz') {
+        if (data.questions && data.questions.length > 0) {
+          setQuizData({ questions: data.questions });
+          setCurrentQuizIndex(0);
+          setUserAnswers({});
+          setQuizSubmitted(false);
+        } else {
+          throw new Error('No quiz questions generated');
+        }
+      } else if (mode === 'theory') {
+        if (data.theoryQuestions && data.theoryQuestions.length > 0) {
+          setTheoryQuestions(data.theoryQuestions);
+          setShowTheorySolutions({});
+        } else {
+          throw new Error('No theory questions generated');
+        }
+      }
+    } catch (error: any) {
       console.error('Analysis failed:', error);
-      alert('Failed to analyze PDF');
+      const errorMessage = error.message || 'Failed to analyze PDF';
+      alert(errorMessage + '. Please try again or check your API key configuration.');
       setMode(null);
     } finally {
       setAnalyzing(false);
@@ -165,15 +223,21 @@ export const PDFStudy: React.FC = () => {
       });
       
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       setChatMessages(prev => [...prev, {
         role: 'assistant',
-        content: data.response
+        content: data.response || 'Sorry, I received an empty response.'
       }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
+      const errorMsg = error.message || 'I encountered an error. Please try again.';
       setChatMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: `Sorry, ${errorMsg}`
       }]);
     }
   };
@@ -385,17 +449,35 @@ export const PDFStudy: React.FC = () => {
             {mode === 'chat' && (
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white">Chat: {file?.name}</h3>
-                  <button
-                    onClick={() => setMode(null)}
-                    className="text-gray-400 hover:text-white transition"
-                    aria-label="Close chat"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white">Chat: {file?.name}</h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {file && `${formatFileSize(file.size)} • ${pdfContext ? `${Math.round(pdfContext.length / 1000)}k chars` : 'Loading...'}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setMode(null);
+                        setChatMessages([]);
+                      }}
+                      className="text-gray-400 hover:text-[#00d4ff] transition flex items-center gap-2 px-3 py-2 bg-[#1a1f3a] rounded-lg"
+                      title="Change mode"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span className="text-sm">Change Mode</span>
+                    </button>
+                    <button
+                      onClick={() => setMode(null)}
+                      className="text-gray-400 hover:text-white transition"
+                      aria-label="Close chat"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+                <div className="space-y-4 mb-4 max-h-96 overflow-y-auto chat-messages">
                   {chatMessages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] px-4 py-3 rounded-lg ${
@@ -436,9 +518,27 @@ export const PDFStudy: React.FC = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-2xl font-bold text-white">Interactive Quiz</h3>
-                    <p className="text-gray-400 text-sm mt-1">Difficulty: {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      {file?.name} • Difficulty: {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+                    </p>
                   </div>
-                  <button onClick={() => setMode(null)} className="text-gray-400 hover:text-white" aria-label="Close quiz"><X className="w-5 h-5" /></button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        setMode(null);
+                        setQuizData(null);
+                        setQuizSubmitted(false);
+                      }} 
+                      className="text-gray-400 hover:text-[#00d4ff] transition flex items-center gap-2 px-3 py-2 bg-[#1a1f3a] rounded-lg"
+                      title="Change mode"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span className="text-sm">Change Mode</span>
+                    </button>
+                    <button onClick={() => {setMode(null); setQuizData(null);}} className="text-gray-400 hover:text-white" aria-label="Close quiz">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {!quizSubmitted && (
@@ -449,15 +549,12 @@ export const PDFStudy: React.FC = () => {
                         <span>Answered: {Object.keys(userAnswers).length}/{quizData.questions.length}</span>
                       </div>
                       <div className="w-full bg-slate-700 rounded-full h-2">
-                        {/* eslint-disable-next-line */}
+                        {/* Dynamic width required for progress tracking - inline style exception */}
                         <div
-                          className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
-                          style={{ width: `${Math.round(progress)}%` }}
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full quiz-progress-bar"
+                          style={{ width: `${progress}%` }}
                           role="progressbar"
                           aria-label="Quiz progress"
-                          aria-valuenow={Math.round(progress)}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
                         />
                       </div>
                     </div>
@@ -676,11 +773,27 @@ export const PDFStudy: React.FC = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-2xl font-bold text-white">Theory Questions</h3>
-                    <p className="text-gray-400 text-sm mt-1">Written/Descriptive Questions • {theoryQuestions.length} Questions</p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      {file?.name} • Written/Descriptive Questions • {theoryQuestions.length} Questions
+                    </p>
                   </div>
-                  <button onClick={() => setMode(null)} className="text-gray-400 hover:text-white" aria-label="Close theory">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        setMode(null);
+                        setTheoryQuestions([]);
+                        setShowTheorySolutions({});
+                      }} 
+                      className="text-gray-400 hover:text-[#00d4ff] transition flex items-center gap-2 px-3 py-2 bg-[#1a1f3a] rounded-lg"
+                      title="Change mode"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span className="text-sm">Change Mode</span>
+                    </button>
+                    <button onClick={() => {setMode(null); setTheoryQuestions([]); setShowTheorySolutions({});}} className="text-gray-400 hover:text-white" aria-label="Close theory">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-6">

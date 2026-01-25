@@ -163,7 +163,8 @@ Ensure the summary is concise yet comprehensive, using clear language suitable f
         const summary = summaryResponse.success ? summaryResponse.response : 'Document uploaded successfully.';
         result = {
           summary,
-          extractedText: extractedText.substring(0, 10000), // Store for reference
+          extractedText: extractedText, // Full text for chat context
+          pdfText: extractedText, // Alias for frontend compatibility
         };
       } else if (mode === 'quiz') {
         // Generate quiz questions
@@ -295,7 +296,11 @@ Generate exactly ${questionCount} questions:`;
           }
           
           console.log(`✅ Successfully parsed ${validQuestions.length} valid questions`);
-          result = { questions: validQuestions };
+          result = { 
+            questions: validQuestions,
+            extractedText: extractedText,
+            pdfText: extractedText
+          };
           
         } catch (parseError: any) {
           console.error('❌ Quiz parsing failed:', parseError.message);
@@ -352,7 +357,11 @@ Generate exactly ${questionCount} questions:`;
             });
           }
           
-          result = { questions: fallbackQuestions };
+          result = { 
+            questions: fallbackQuestions,
+            extractedText: extractedText,
+            pdfText: extractedText
+          };
         }
       } else if (mode === 'theory') {
         // Generate theory/written questions
@@ -424,7 +433,11 @@ Generate ${questionCount} theory questions:`;
           if (validTheoryQuestions.length === 0) throw new Error('No valid theory questions');
           
           console.log(`✅ Successfully parsed ${validTheoryQuestions.length} theory questions`);
-          result = { theoryQuestions: validTheoryQuestions };
+          result = { 
+            theoryQuestions: validTheoryQuestions,
+            extractedText: extractedText,
+            pdfText: extractedText
+          };
           
         } catch (error) {
           console.error('❌ Theory question parsing failed');
@@ -448,7 +461,11 @@ Generate ${questionCount} theory questions:`;
             });
           }
           
-          result = { theoryQuestions: fallbackTheory };
+          result = { 
+            theoryQuestions: fallbackTheory,
+            extractedText: extractedText,
+            pdfText: extractedText
+          };
         }
       } else if (mode === 'questions') {
         // Generate study questions
@@ -497,13 +514,36 @@ ${extractedText.substring(0, 6000)}`;
         }
       }
 
+      // Add metadata to all responses
+      result.metadata = {
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        textLength: extractedText.length,
+        timestamp: new Date().toISOString()
+      };
+
       res.json(result);
     } catch (error: any) {
-      console.error('File analysis error:', error);
-      res.status(500).json({
+      console.error('❌ File analysis error:', error);
+      const errorResponse: any = {
         error: 'Failed to analyze file',
         details: error.message,
-      });
+      };
+      
+      // Add helpful error messages
+      if (error.message.includes('API key')) {
+        errorResponse.error = 'AI service configuration error';
+        errorResponse.help = 'Please check that GEMINI_API_KEY is properly set in backend/.env';
+      } else if (error.message.includes('extract text')) {
+        errorResponse.error = 'Could not read PDF content';
+        errorResponse.help = 'The PDF might be image-based, corrupted, or password-protected';
+      } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
+        errorResponse.error = 'AI service rate limit exceeded';
+        errorResponse.help = 'Please wait a moment and try again';
+      }
+
+      res.status(500).json(errorResponse);
     }
   },
 

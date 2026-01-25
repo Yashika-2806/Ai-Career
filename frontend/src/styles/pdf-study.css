@@ -1,0 +1,150 @@
+/* PDF Study Component Custom Styles */
+
+/* 3D Flashcard Effects */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Fade-in Animation */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glow Effects for Cards */
+.card-glow {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.card-glow:hover {
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.hover-glow-cyan:hover {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+.btn-primary-glow {
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-primary-glow:hover {
+  box-shadow: 0 6px 30px rgba(0, 212, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Smooth transitions for quiz cards */
+.quiz-option {
+  transition: all 0.2s ease;
+}
+
+.quiz-option:hover {
+  transform: translateX(5px);
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .perspective-1000 {
+    perspective: 600px;
+  }
+  
+  .card-glow {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+  }
+}
+
+/* Scrollbar styling for chat messages */
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 10px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.5);
+}
+
+/* Theory question answer area focus */
+.theory-answer-textarea:focus {
+  outline: none;
+  border-color: rgb(147, 51, 234);
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+/* Smooth height transitions */
+.transition-height {
+  transition: height 0.3s ease;
+}
+
+/* Quiz progress bar animation */
+.progress-bar-animated {
+  transition: width 0.5s ease;
+}
+
+/* Allow inline width for dynamic progress bars */
+.quiz-progress-bar {
+  transition: width 0.5s ease;
+  /* Width set dynamically via inline style for progress tracking */
+}
+
