@@ -12,7 +12,7 @@ import {
   generateConversationId
 } from '../utils/pdfHelpers';
 
-type StudyMode = 'chat' | 'quiz' | 'theory' | null;
+type StudyMode = 'quiz' | 'theory' | null;
 type Difficulty = 'easy' | 'moderate' | 'hard';
 
 export const PDFStudy: React.FC = () => {
@@ -95,47 +95,6 @@ export const PDFStudy: React.FC = () => {
       setMode(selectedMode);
       setShowSettings(true);
       return;
-    }
-    
-    // For chat mode, proceed directly
-    setMode(selectedMode);
-    setAnalyzing(true);
-    
-    try {
-      const API_BASE = import.meta.env.VITE_API_URL || '/api';
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('mode', selectedMode as string);
-      
-      const response = await fetch(`${API_BASE}/pdf/analyze`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) throw new Error('Analysis failed');
-      
-      const data = await response.json();
-      
-      // Store PDF context from any mode for chat capability
-      if (data.pdfText || data.extractedText) {
-        setPdfContext(data.pdfText || data.extractedText || '');
-      }
-      
-      const newConvId = generateConversationId('pdf');
-      setConversationId(newConvId);
-      setChatMessages([{
-        role: 'assistant',
-        content: data.summary || `I've analyzed "${file.name}". Ask me anything!`
-      }]);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      alert('Failed to analyze PDF');
-      setMode(null);
-    } finally {
-      setAnalyzing(false);
     }
   };
 
@@ -388,22 +347,6 @@ export const PDFStudy: React.FC = () => {
               <h2 className="text-2xl font-bold text-white mb-4">Choose Study Mode</h2>
               
               <button
-                onClick={() => handleModeSelect('chat')}
-                disabled={!file || analyzing}
-                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition text-left"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MessageCircle className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white mb-1">Chat with PDF</h3>
-                    <p className="text-gray-400 text-sm">Ask questions and get instant answers</p>
-                  </div>
-                </div>
-              </button>
-
-              <button
                 onClick={() => handleModeSelect('quiz')}
                 disabled={!file || analyzing}
                 className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition text-left"
@@ -445,71 +388,6 @@ export const PDFStudy: React.FC = () => {
           </div>
         ) : (
           <div>
-            {/* Chat Mode */}
-            {mode === 'chat' && (
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white">Chat: {file?.name}</h3>
-                    <p className="text-sm text-gray-400 mt-1">
-                      {file && `${formatFileSize(file.size)} • ${pdfContext ? `${Math.round(pdfContext.length / 1000)}k chars` : 'Loading...'}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setMode(null);
-                        setChatMessages([]);
-                      }}
-                      className="text-gray-400 hover:text-[#00d4ff] transition flex items-center gap-2 px-3 py-2 bg-[#1a1f3a] rounded-lg"
-                      title="Change mode"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      <span className="text-sm">Change Mode</span>
-                    </button>
-                    <button
-                      onClick={() => setMode(null)}
-                      className="text-gray-400 hover:text-white transition"
-                      aria-label="Close chat"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4 mb-4 max-h-96 overflow-y-auto chat-messages">
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] px-4 py-3 rounded-lg ${
-                        msg.role === 'user' 
-                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
-                          : 'bg-slate-800/90 text-gray-200'
-                      }`}>
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Ask about the PDF..."
-                    className="flex-1 px-4 py-3 bg-slate-800/90 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-6 rounded-lg transition"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Quiz Mode */}
             {mode === 'quiz' && quizData && quizData.questions.length > 0 && (() => {
               const progress = Math.round(((currentQuizIndex + 1) / quizData.questions.length) * 100);
