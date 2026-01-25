@@ -30,9 +30,9 @@ export class AIService {
       throw new Error('GEMINI_API_KEY is not set');
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
-    // Use gemini-1.5-flash-latest - works with v1beta API
+    // Use gemini-1.5-flash - stable model for production
     this.model = this.genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         maxOutputTokens: 8192,
         temperature: 0.7,
