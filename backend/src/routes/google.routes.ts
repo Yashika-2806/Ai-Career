@@ -21,9 +21,9 @@ router.get('/callback',
     const user = req.user as any;
     const token = generateToken(user._id || user.id);
 
-    // Redirect to frontend with token
+    // Redirect to frontend login page with token
     const frontendUrl = process.env.FRONTEND_URL || 'https://ai.gladsw.cloud';
-    res.redirect(`${frontendUrl}/?token=${token}`);
+    res.redirect(`${frontendUrl}/login?token=${token}`);
   }
 );
 

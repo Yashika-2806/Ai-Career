@@ -81,6 +81,13 @@ export const authController = {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
+      // Handle users who signed up via Google and have no password
+      if (!user.password) {
+        return res.status(401).json({
+          error: 'This account uses Google Login. Please sign in with Google.'
+        });
+      }
+
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
         return res.status(401).json({ error: 'Invalid credentials' });
@@ -97,6 +104,7 @@ export const authController = {
         },
       });
     } catch (error: any) {
+      console.error('Login Error:', error);
       res.status(500).json({ error: 'Login failed', details: error.message });
     }
   },

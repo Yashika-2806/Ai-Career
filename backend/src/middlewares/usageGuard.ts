@@ -25,17 +25,34 @@ export const checkUsageLimit = (feature: FeatureType) => {
             const tier = user.subscriptionTier || 'free';
             const limit = PLAN_LIMITS[tier][feature];
 
-            // Reset usage if it's a new day
-            if (user.dailyUsage.date !== today) {
+            // Initialize dailyUsage if missing (for legacy users)
+            if (!user.dailyUsage) {
                 user.dailyUsage = {
                     date: today,
-                    counts: {
-                        resume: 0,
-                        dsa: 0,
-                        research: 0,
-                        interview: 0,
-                        roadmap: 0,
-                    }
+                    counts: { resume: 0, dsa: 0, research: 0, interview: 0, roadmap: 0 }
+                };
+            }
+
+            // Reset usage if it's a new day
+            if (user.dailyUsage.date !== today) {
+                user.dailyUsage.date = today;
+                user.dailyUsage.counts = {
+                    resume: 0,
+                    dsa: 0,
+                    research: 0,
+                    interview: 0,
+                    roadmap: 0,
+                };
+            }
+
+            // Ensure counts object exists
+            if (!user.dailyUsage.counts) {
+                user.dailyUsage.counts = {
+                    resume: 0,
+                    dsa: 0,
+                    research: 0,
+                    interview: 0,
+                    roadmap: 0,
                 };
             }
 

@@ -14,24 +14,26 @@ import Layout from './components/Layout';
 function App() {
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const setToken = useAuthStore((s) => s.setToken);
 
   useEffect(() => {
-    // Check for token in URL (Google OAuth)
+    // Check for token in URL IMMEDIATELY (Google OAuth)
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
+    const tokenFromUrl = params.get('token');
 
-    if (token) {
-      useAuthStore.getState().setToken(token);
-      // Clean URL
-      window.history.replaceState({}, document.title, "/");
+    if (tokenFromUrl) {
+      setToken(tokenFromUrl);
+      // Clean URL without losing state
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     checkAuth();
-  }, [checkAuth]);
+  }, [checkAuth, setToken]);
 
   return (
     <Router>
       <Routes>
+        {/* Always allow login page */}
         <Route path="/login" element={<LoginPage />} />
 
         {isAuthenticated ? (
@@ -46,6 +48,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
         ) : (
+          /* If not authenticated, any other route goes to login */
           <Route path="*" element={<Navigate to="/login" replace />} />
         )}
       </Routes>
