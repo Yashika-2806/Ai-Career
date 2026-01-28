@@ -9,11 +9,11 @@ export const LoginPage: React.FC = () => {
   const setUser = useAuthStore((s) => s.setUser);
   const setToken = useAuthStore((s) => s.setToken);
   const setError = useAuthStore((s) => s.setError);
-  
+
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setLocalError] = useState('');
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -178,7 +178,7 @@ export const LoginPage: React.FC = () => {
               <div className="flex-grow border-t border-cyan-700" />
             </div>
             <a
-              href="https://ai.gladsw.cloud/api/google/google"
+              href="https://ai.gladsw.cloud/api/google"
               className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-gray-100 text-navy-900 font-semibold rounded-lg transition-all shadow-glow-cyan hover:shadow-glow-cyan-lg border border-cyan-400"
               style={{ textDecoration: 'none' }}
             >
