@@ -2,10 +2,6 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from '../models/User.js';
 
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import User from '../models/User.js';
-
 export const configurePassport = () => {
   passport.serializeUser((user: any, done) => {
     done(null, user.id);
