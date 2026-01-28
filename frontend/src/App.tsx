@@ -16,6 +16,16 @@ function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
+    // Check for token in URL (Google OAuth)
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    if (token) {
+      useAuthStore.getState().setToken(token);
+      // Clean URL
+      window.history.replaceState({}, document.title, "/");
+    }
+
     checkAuth();
   }, [checkAuth]);
 

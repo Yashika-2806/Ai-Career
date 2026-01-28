@@ -1,5 +1,6 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import passport from 'passport';
+import { generateToken, AuthRequest } from '../middlewares/auth.js';
 
 const router = Router();
 
@@ -15,14 +16,19 @@ router.get('/callback',
     failureRedirect: '/login',
     session: true
   }),
-  (req, res) => {
-    // Redirect to frontend after successful login
-    res.redirect('/'); // Change to your frontend dashboard if needed
+  (req: AuthRequest, res: Response) => {
+    // Generate JWT token for the user
+    const user = req.user as any;
+    const token = generateToken(user._id || user.id);
+
+    // Redirect to frontend with token
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ai.gladsw.cloud';
+    res.redirect(`${frontendUrl}/?token=${token}`);
   }
 );
 
 // Logout
-router.get('/logout', (req, res) => {
+router.get('/logout', (req: AuthRequest, res: Response) => {
   req.logout(() => {
     res.redirect('/');
   });
