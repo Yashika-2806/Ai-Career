@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../context/auth.store';
@@ -10,9 +10,18 @@ export const LoginPage: React.FC = () => {
   const setToken = useAuthStore((s) => s.setToken);
   const setError = useAuthStore((s) => s.setError);
 
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setLocalError] = useState('');
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const [formData, setFormData] = useState({
     email: '',
