@@ -54,7 +54,9 @@ export default async function handler(req, res) {
         console.log('→ Request body:', fetchOptions.body);
       } else {
         console.log('⚠️  No body in request');
-      }ole.log('→ Fetching from backend...');
+      }
+    }
+    console.log('→ Fetching from backend...');
     const response = await fetch(targetUrl, fetchOptions);
     console.log('✓ Backend responded:', response.status, response.statusText);
     
@@ -68,19 +70,20 @@ export default async function handler(req, res) {
     }
 
     console.log('✓ Response data:', JSON.stringify(data).substring(0, 200));
-    
-    // Return with CORS headers
-    }━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    // Return proxied response
+    return res.status(response.status).json(data);
+  } catch (error) {
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('❌ PROXY ERROR');
     console.error('Error:', error.message);
     console.error('Stack:', error.stack);
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: 'Proxy failed to reach backend', 
+      error: 'Proxy failed to reach backend',
       message: error.message,
-      details: 'Check Vercel function logs for details'
+      details: 'Check Vercel function logs for details',
+      stack: error.stack
     });
   }
 }
@@ -91,9 +94,4 @@ export const config = {
     bodyParser: true,
     externalResolver: true,
   },
-};     error: 'Proxy error', 
-      message: error.message,
-      stack: error.stack
-    });
-  }
-}
+};
