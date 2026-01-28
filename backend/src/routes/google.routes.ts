@@ -29,9 +29,13 @@ router.get('/callback',
 
 // Logout
 router.get('/logout', (req: AuthRequest, res: Response) => {
-  req.logout(() => {
+  if (req.logout) {
+    req.logout(() => {
+      res.redirect('/');
+    });
+  } else {
     res.redirect('/');
-  });
+  }
 });
 
 export default router;
