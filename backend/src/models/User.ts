@@ -2,8 +2,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 interface IUser extends Document {
   email: string;
-  password: string;
+  password?: string;
   name: string;
+  googleId?: string;
   college?: string;
   yearOfGraduation?: number;
   branch?: string;
@@ -21,8 +22,9 @@ interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true, lowercase: true },
-  password: { type: String, required: true },
+  password: { type: String },
   name: { type: String, required: true },
+  googleId: { type: String, unique: true, sparse: true },
   college: String,
   yearOfGraduation: Number,
   branch: String,

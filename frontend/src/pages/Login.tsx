@@ -171,6 +171,20 @@ export const LoginPage: React.FC = () => {
             >
               {loading ? 'Loading...' : isLogin ? 'Login' : 'Register'}
             </button>
+
+            <div className="flex items-center my-4">
+              <div className="flex-grow border-t border-cyan-700" />
+              <span className="mx-2 text-cyan-300 text-xs">or</span>
+              <div className="flex-grow border-t border-cyan-700" />
+            </div>
+            <a
+              href="https://ai.gladsw.cloud/api/google/google"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-gray-100 text-navy-900 font-semibold rounded-lg transition-all shadow-glow-cyan hover:shadow-glow-cyan-lg border border-cyan-400"
+              style={{ textDecoration: 'none' }}
+            >
+              <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google" className="w-5 h-5" />
+              Sign in with Google
+            </a>
           </form>
 
           <div className="mt-6 text-center">

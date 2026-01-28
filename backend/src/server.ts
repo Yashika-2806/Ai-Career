@@ -11,6 +11,11 @@ import researchRoutes from './routes/research.routes.js';
 import interviewRoutes from './routes/interview.routes.js';
 import roadmapRoutes from './routes/roadmap.routes.js';
 import pdfRoutes from './routes/pdf.routes.js';
+import googleRoutes from './routes/google.routes.js';
+
+import session from 'express-session';
+import passport from 'passport';
+import '../ai/passport.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +47,20 @@ app.options('*', (req: Request, res: Response) => {
 // Parse body FIRST
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Session and Passport setup (for OAuth)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
+  },
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 // THEN log requests (after body is parsed)
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -123,6 +142,7 @@ app.get('/health/ai', async (req: Request, res: Response) => {
 try {
   // Register routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/google', googleRoutes);
   console.log('✅ Auth routes loaded');
   
   app.use('/api/dsa', dsaRoutes);
