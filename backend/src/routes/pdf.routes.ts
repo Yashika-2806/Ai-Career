@@ -3,6 +3,8 @@ import { authMiddleware } from '../middlewares/auth.js';
 import { pdfController } from '../controllers/pdf.controller.js';
 import multer from 'multer';
 
+import { checkUsageLimit } from '../middlewares/usageGuard.js';
+
 const router = Router();
 
 // Configure multer for file upload (PDF and PPT)
@@ -17,7 +19,7 @@ const upload = multer({
       'application/vnd.ms-powerpoint', // .ppt
       'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
     ];
-    
+
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -27,7 +29,7 @@ const upload = multer({
 });
 
 // File analysis endpoint (PDF/PPT)
-router.post('/analyze', authMiddleware, upload.single('file'), (req, res) => {
+router.post('/analyze', authMiddleware, checkUsageLimit('research'), upload.single('file'), (req, res) => {
   pdfController.analyzePDF(req, res);
 });
 

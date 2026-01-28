@@ -10,6 +10,17 @@ interface IUser extends Document {
   branch?: string;
   bio?: string;
   profilePicture?: string;
+  subscriptionTier: 'free' | 'premium';
+  dailyUsage: {
+    date: string; // Format: YYYY-MM-DD
+    counts: {
+      resume: number;
+      dsa: number;
+      research: number;
+      interview: number;
+      roadmap: number;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
   socialProfiles: {
@@ -30,6 +41,17 @@ const UserSchema = new Schema<IUser>({
   branch: String,
   bio: String,
   profilePicture: String,
+  subscriptionTier: { type: String, enum: ['free', 'premium'], default: 'free' },
+  dailyUsage: {
+    date: { type: String, default: () => new Date().toISOString().split('T')[0] },
+    counts: {
+      resume: { type: Number, default: 0 },
+      dsa: { type: Number, default: 0 },
+      research: { type: Number, default: 0 },
+      interview: { type: Number, default: 0 },
+      roadmap: { type: Number, default: 0 },
+    }
+  },
   socialProfiles: {
     github: {
       username: String,

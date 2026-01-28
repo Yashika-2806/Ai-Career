@@ -2,15 +2,16 @@ import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.js';
 import { aiLimiter } from '../middlewares/rateLimiter.js';
 import { interviewController, mentorController } from '../controllers/interview.controller.js';
+import { checkUsageLimit } from '../middlewares/usageGuard.js';
 
 const router = Router();
 
 // Interview routes
-router.post('/start', authMiddleware, aiLimiter, (req, res) => {
+router.post('/start', authMiddleware, checkUsageLimit('interview'), aiLimiter, (req, res) => {
   interviewController.startInterview(req, res);
 });
 
-router.post('/submit-answer', authMiddleware, aiLimiter, (req, res) => {
+router.post('/submit-answer', authMiddleware, checkUsageLimit('interview'), aiLimiter, (req, res) => {
   interviewController.submitAnswer(req, res);
 });
 
@@ -19,7 +20,7 @@ router.get('/history', authMiddleware, (req, res) => {
 });
 
 // Mentor routes
-router.post('/mentor/response', authMiddleware, aiLimiter, (req, res) => {
+router.post('/mentor/response', authMiddleware, checkUsageLimit('interview'), aiLimiter, (req, res) => {
   mentorController.getMentorResponse(req, res);
 });
 

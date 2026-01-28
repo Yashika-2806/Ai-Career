@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.js';
 import { aiLimiter } from '../middlewares/rateLimiter.js';
 import { researchController } from '../controllers/research.controller.js';
+import { checkUsageLimit } from '../middlewares/usageGuard.js';
 
 const router = Router();
 
@@ -21,15 +22,15 @@ router.put('/:projectId', authMiddleware, (req, res) => {
   researchController.updateProject(req, res);
 });
 
-router.post('/:projectId/summarize', authMiddleware, aiLimiter, (req, res) => {
+router.post('/:projectId/summarize', authMiddleware, checkUsageLimit('research'), aiLimiter, (req, res) => {
   researchController.summarizePaper(req, res);
 });
 
-router.post('/:projectId/related-works', authMiddleware, aiLimiter, (req, res) => {
+router.post('/:projectId/related-works', authMiddleware, checkUsageLimit('research'), aiLimiter, (req, res) => {
   researchController.findRelatedWorks(req, res);
 });
 
-router.post('/:projectId/methodology', authMiddleware, aiLimiter, (req, res) => {
+router.post('/:projectId/methodology', authMiddleware, checkUsageLimit('research'), aiLimiter, (req, res) => {
   researchController.generateMethodology(req, res);
 });
 
@@ -45,19 +46,19 @@ router.patch('/:projectId/status', authMiddleware, (req, res) => {
   researchController.updateStatus(req, res);
 });
 
-router.post('/:projectId/literature-review', authMiddleware, aiLimiter, (req, res) => {
+router.post('/:projectId/literature-review', authMiddleware, checkUsageLimit('research'), aiLimiter, (req, res) => {
   researchController.generateLiteratureReview(req, res);
 });
 
-router.post('/:projectId/abstract', authMiddleware, aiLimiter, (req, res) => {
+router.post('/:projectId/abstract', authMiddleware, checkUsageLimit('research'), aiLimiter, (req, res) => {
   researchController.generateAbstract(req, res);
 });
 
-router.post('/:projectId/introduction', authMiddleware, aiLimiter, (req, res) => {
+router.post('/:projectId/introduction', authMiddleware, checkUsageLimit('research'), aiLimiter, (req, res) => {
   researchController.generateIntroduction(req, res);
 });
 
-router.post('/recommend-papers', authMiddleware, aiLimiter, (req, res) => {
+router.post('/recommend-papers', authMiddleware, checkUsageLimit('research'), aiLimiter, (req, res) => {
   researchController.recommendPapers(req, res);
 });
 
