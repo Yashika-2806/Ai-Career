@@ -29,8 +29,9 @@ router.get('/callback',
 
 // Logout
 router.get('/logout', (req: AuthRequest, res: Response) => {
-  if (req.logout) {
-    req.logout(() => {
+  const passportReq = req as any;
+  if (passportReq.logout) {
+    passportReq.logout(() => {
       res.redirect('/');
     });
   } else {

@@ -5,7 +5,6 @@ export interface AuthRequest extends Request {
   userId?: string;
   user?: any;
   file?: any;
-  logout?: (callback: (err: any) => void) => void;
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
