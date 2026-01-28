@@ -15,7 +15,7 @@ import googleRoutes from './routes/google.routes.js';
 
 import session from 'express-session';
 import passport from 'passport';
-import '../ai/passport.js';
+import { configurePassport } from './ai/passport.js';
 
 // Load environment variables
 dotenv.config();
@@ -59,6 +59,7 @@ app.use(session({
     sameSite: 'lax',
   },
 }));
+configurePassport();
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -119,16 +120,16 @@ app.get('/health/ai', async (req: Request, res: Response) => {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent('Say OK in one word');
     const text = result.response.text();
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Gemini AI is working',
       model: 'gemini-2.5-flash',
       apiVersion: 'v1beta (default)',
-      response: text 
+      response: text
     });
   } catch (error: any) {
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: error.message,
       details: error.toString()
     });
@@ -144,25 +145,25 @@ try {
   app.use('/api/auth', authRoutes);
   app.use('/api/google', googleRoutes);
   console.log('✅ Auth routes loaded');
-  
+
   app.use('/api/dsa', dsaRoutes);
   console.log('✅ DSA routes loaded');
-  
+
   app.use('/api/resume', resumeRoutes);
   console.log('✅ Resume routes loaded');
-  
+
   app.use('/api/research', researchRoutes);
   console.log('✅ Research routes loaded');
-  
+
   app.use('/api/interview', interviewRoutes);
   console.log('✅ Interview routes loaded');
-  
+
   app.use('/api/roadmap', roadmapRoutes);
   console.log('✅ Roadmap routes loaded');
-  
+
   app.use('/api/pdf', pdfRoutes);
   console.log('✅ PDF routes loaded');
-  
+
   console.log('✅ All routes registered successfully');
 } catch (error) {
   console.error('❌ Failed to register routes:', error);
@@ -203,7 +204,7 @@ const server = app.listen(PORT, async () => {
 
   // Connect to MongoDB after server starts
   await connectDB();
-  
+
   console.log('✅ All routes loaded successfully');
   console.log('✅ Server ready to accept connections\n');
 });
