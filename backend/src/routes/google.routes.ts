@@ -4,13 +4,13 @@ import passport from 'passport';
 const router = Router();
 
 // Start Google OAuth login
-router.get('/google', passport.authenticate('google', {
+router.get('/', passport.authenticate('google', {
   scope: ['profile', 'email'],
   prompt: 'select_account'
 }));
 
 // Google OAuth callback
-router.get('/google/callback',
+router.get('/callback',
   passport.authenticate('google', {
     failureRedirect: '/login',
     session: true
